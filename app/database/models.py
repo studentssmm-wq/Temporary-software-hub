@@ -87,6 +87,7 @@ class QRPass(Base):
         BigInteger,
         ForeignKey("users.telegram_id", ondelete="CASCADE"),
         nullable=False,
+        unique=True
     )
 
     is_on_territory: Mapped[bool] = mapped_column(
