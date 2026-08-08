@@ -2,27 +2,19 @@ import asyncio
 import os
 
 from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart
-from aiogram.types import Message
 from dotenv import load_dotenv
-
+from app.handlers.qr import router
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
-
-
-@dp.message(CommandStart())
-async def start_handler(message: Message):
-    await message.answer(
-        f"Привіт, {message.from_user.first_name}! 👋"
-    )
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 async def main():
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher()
+    dp.include_router(router)
     await dp.start_polling(bot)
 
 
