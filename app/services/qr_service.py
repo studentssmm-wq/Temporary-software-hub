@@ -1,7 +1,7 @@
 import uuid
 from io import BytesIO
 import segno
-
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.qr_repository import create_pass, get_pass_by_user, toggle_pass, get_pass
 
@@ -41,3 +41,11 @@ async def create_qr_pass(session: AsyncSession, telegram_id: int):
     qrcode = generate_qr(pass_id)
 
     return pass_id, qrcode
+
+
+async def process_pass_scan(session: AsyncSession, pass_id: UUID):
+    qr_pass = await get_pass(session, pass_id)
+
+    if qr_pass is None:
+        return None
+    return await toggle_pass(session, qr_pass)

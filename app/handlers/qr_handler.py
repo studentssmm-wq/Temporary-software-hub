@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.types import BufferedInputFile, Message
 from aiogram.filters import CommandStart, CommandObject, Command
-from app.services.qr_service import create_qr_pass, toggle_pass
+from app.services.qr_service import create_qr_pass, process_pass_scan
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 qr = Router()
@@ -19,23 +19,35 @@ async def generate_qr_handler(session: AsyncSession, message: Message):
 
 
 @qr.message(CommandStart(deep_link=True))
-async def process_qr(
+async def scan_qr(
     message: Message,
     command: CommandObject,
     session: AsyncSession,
 ):
-    pass_id = UUID(command.args)
+    try:
+        pass_id = UUID(command.args)
+    except (ValueError, TypeError):
+        await message.answer(
+            "❌ Некоректний QR-код."
+        )
+        return
 
-    qr_pass = await toggle_pass(
+    qr_pass, was_on_territory = await process_pass_scan(
         session,
         pass_id,
     )
 
     if qr_pass is None:
-        await message.answer("Пропуск не знайдено")
+        await message.answer(
+            "❌ Пропуск не знайдено."
+        )
         return
 
-    if qr_pass.is_on_territory:
-        await message.answer("Вихід зафіксовано")
+    if was_on_territory:
+        await message.answer(
+            "🚪 Вихід зафіксовано."
+        )
     else:
-        await message.answer("Вхід зафіксовано")
+        await message.answer(
+            "✅ Вхід зафіксовано."
+        )

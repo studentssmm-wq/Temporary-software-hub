@@ -1,9 +1,12 @@
+import asyncio
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# Створюємо простий веб-сервер для Render
+# Імпортуємо вашу функцію запуску бота
+from app.bot import start_bot
 
 
+# === Створюємо простий веб-сервер для Render ===
 class DummyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -17,10 +20,10 @@ def run_dummy_server():
     server.serve_forever()
 
 
-# Запускаємо сервер в окремому фоновому потоці
-threading.Thread(target=run_dummy_server, daemon=True).start()
+# === ГОЛОВНИЙ ЗАПУСК ===
+if __name__ == "main":
+    # 1. Запускаємо фейковий сервер в окремому фоновому потоці
+    threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# === ДАЛІ ЙДЕ ВАШ ЗВИЧАЙНИЙ КОД БОТА ===
-# наприклад:
-# if name == 'main':
-#     asyncio.run(main())
+    # 2. Запускаємо вашого бота
+    asyncio.run(start_bot())
