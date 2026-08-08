@@ -3,7 +3,7 @@ from io import BytesIO
 import segno
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.qr import create_pass, get_pass_by_user
+from app.repositories.qr_repository import create_pass, get_pass_by_user, toggle_pass, get_pass
 
 
 def generate_pass_id() -> uuid.UUID:
@@ -41,11 +41,3 @@ async def create_qr_pass(session: AsyncSession, telegram_id: int):
     qrcode = generate_qr(pass_id)
 
     return pass_id, qrcode
-
-
-async def get_pass(pass_id):
-    pass
-
-
-async def toggle_pass(pass_id):
-    pass
