@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import QRPass
@@ -65,3 +65,8 @@ async def toggle_pass(
     await session.refresh(qr_pass)
 
     return qr_pass
+
+
+async def get_users_on_territory_count(session: AsyncSession):
+    count = await session.scalar(select(func.count()).select_from(QRPass).where(QRPass.is_on_territory == True))
+    return count

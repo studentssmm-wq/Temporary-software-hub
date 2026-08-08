@@ -4,6 +4,7 @@ import segno
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.qr_repository import create_pass, get_pass_by_user, toggle_pass, get_pass
+from app.database.models import QRPass
 
 
 def generate_pass_id() -> uuid.UUID:
@@ -43,9 +44,24 @@ async def create_qr_pass(session: AsyncSession, telegram_id: int):
     return pass_id, qrcode
 
 
-async def process_pass_scan(session: AsyncSession, pass_id: UUID):
-    qr_pass = await get_pass(session, pass_id)
+async def process_pass_scan(
+    session: AsyncSession,
+    pass_id: UUID,
+) -> tuple[QRPass | None, bool]:
+
+    qr_pass = await get_pass(
+        session,
+        pass_id,
+    )
 
     if qr_pass is None:
-        return None
-    return await toggle_pass(session, qr_pass)
+        return None, False
+
+    was_on_territory = qr_pass.is_on_territory
+
+    await toggle_pass(
+        session,
+        qr_pass,
+    )
+
+    return qr_pass, was_on_territory
