@@ -19,6 +19,10 @@ def get_admin_main_kb() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="📢 Зробити оголошення",
                              callback_data="admin_broadcast")
     )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Назад до головного меню",
+                             callback_data="back_to_main")
+    )
 
     return builder.as_markup()
 

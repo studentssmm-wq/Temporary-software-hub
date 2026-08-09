@@ -14,7 +14,7 @@ from app.database.database import create_db_pool
 async def set_bot_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="🚀 Запустити бота"),
-        BotCommand(command="profile", description="👤 Мій профіль"),
+        # BotCommand(command="profile", description="👤 Мій профіль"),
         BotCommand(command="qr", description="📲 Отримати свій QR-код"),
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
@@ -28,7 +28,7 @@ async def start_bot():
 
     dp.update.middleware(DatabaseMiddleware(session_factory))
     dp.include_routers(qr_router, admin_router,
-                       registration_router, profile_router)
+                       registration_router)
 
     await set_bot_commands(bot)
     print("Бот запущено!")

@@ -1,12 +1,13 @@
 import asyncio
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.exceptions import TelegramAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
 from app.filters.admin_filter import AdminFilter
 from app.keyboards.admin_keyboard import get_admin_main_kb, get_broadcast_target_kb
+from app.keyboards.main_keyboard import get_main_menu_kb
 from app.repositories.qr_repository import get_users_on_territory_count
 from app.repositories.user_repository import update_user_role, get_users_for_broadcast
 
@@ -17,9 +18,20 @@ admin_router.message.filter(AdminFilter())
 admin_router.callback_query.filter(AdminFilter())
 
 
+@admin_router.message(Command("cancel"))
+async def cancel_fsm_handler(message: Message, state: FSMContext):
+    """Скасовує будь-яку поточну дію FSM"""
+    current_state = await state.get_state()
+    if current_state is None:
+        return  # Якщо стану немає, нічого не робимо
+
+    await state.clear()
+    await message.answer("Дію скасовано. Повернення до нормального режиму.", reply_markup=ReplyKeyboardRemove())
+
+
 @admin_router.message(Command("admin"))
-async def admin_panel_handler(message: Message):
-    """Обробник команди /admin"""
+async def admin_panel_handler(message: Message, state: FSMContext):
+    await state.clear()  # 👈 Очищаємо стан!
     await message.answer(
         "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
         reply_markup=get_admin_main_kb()
@@ -27,11 +39,25 @@ async def admin_panel_handler(message: Message):
 
 
 @admin_router.callback_query(F.data == "admin_cancel")
-async def cancel_action_handler(callback: CallbackQuery):
-    """Повертає адміна до головного меню"""
+# Додано state
+async def cancel_action_handler(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+
     await callback.message.edit_text(
         "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
         reply_markup=get_admin_main_kb()
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(F.data == "back_to_main")
+# Додано state
+async def back_to_main_handler(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+
+    await callback.message.edit_text(
+        "Оберіть потрібну дію нижче:",
+        reply_markup=get_main_menu_kb(role="admin")
     )
     await callback.answer()
 
@@ -110,10 +136,16 @@ async def ask_broadcast_message(callback: CallbackQuery, state: FSMContext):
     await state.update_data(target=target)
     await state.set_state(BroadcastState.waiting_for_message)
 
+    # 👈 Створюємо кнопку скасування на льоту
+    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Скасувати",
+                              callback_data="admin_cancel")]
+    ])
+
     await callback.message.edit_text(
-        "✍️ Надішліть текст оголошення (можна форматувати текст):\n\n"
-        "<i>Щоб скасувати, натисніть відповідну кнопку в попередньому меню.</i>",
-        parse_mode="HTML"
+        "✍️ Надішліть текст оголошення (можна форматувати текст):",
+        parse_mode="HTML",
+        reply_markup=cancel_kb  # 👈 Додаємо клавіатуру сюди
     )
     await callback.answer()
 
