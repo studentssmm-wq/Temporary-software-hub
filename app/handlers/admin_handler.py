@@ -1,12 +1,14 @@
+import asyncio
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
+from aiogram.exceptions import TelegramAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
 from app.filters.admin_filter import AdminFilter
 from app.keyboards.admin_keyboard import get_admin_main_kb, get_broadcast_target_kb
 from app.repositories.qr_repository import get_users_on_territory_count
-from app.repositories.user_repository import update_user_role
+from app.repositories.user_repository import update_user_role, get_users_for_broadcast
 
 from app.states.admin_states import AdminRoleState, BroadcastState
 admin_router = Router()
@@ -112,5 +114,48 @@ async def ask_broadcast_message(callback: CallbackQuery, state: FSMContext):
         "✍️ Надішліть текст оголошення (можна форматувати текст):\n\n"
         "<i>Щоб скасувати, натисніть відповідну кнопку в попередньому меню.</i>",
         parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@admin_router.message(BroadcastState.waiting_for_message)
+async def process_broadcast_message(message: Message, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    target = data.get("target")
+
+    users_ids = await get_users_for_broadcast(session, target)
+    if not users_ids:
+        await message.answer("🤷‍♂️ За обраним критерієм не знайдено жодного користувача.")
+        await state.clear()
+        return
+    status_msg = await message.answer(f"⏳ Розпочинаю розсилку для {len(users_ids)} користувачів...")
+
+    success_count = 0
+    fail_count = 0
+
+    for user_id in users_ids:
+        try:
+            await message.copy_to(chat_id=user_id)
+            success_count += 1
+        except TelegramAPIError:
+            fail_count += 1
+        await asyncio.sleep(0.05)
+
+    await status_msg.edit_text(
+        f"✅ <b>Розсилку завершено!</b>\n\n"
+        f"📩 Успішно доставлено: {success_count}\n"
+        f"❌ Помилок (заблоковано): {fail_count}",
+        parse_mode="HTML"
+    )
+
+    await state.clear()
+
+
+@admin_router.callback_query(F.data == "main_admin")
+async def main_admin_callback(callback: CallbackQuery):
+    # Відправляємо меню адміністратора
+    await callback.message.edit_text(
+        "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
+        reply_markup=get_admin_main_kb()
     )
     await callback.answer()
