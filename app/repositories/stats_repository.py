@@ -4,6 +4,7 @@ from sqlalchemy import func, select, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
 from app.database.models import QRPass, ScanLog, User
+from zoneinfo import ZoneInfo
 
 
 async def get_users_on_territory_count(session: AsyncSession) -> int:
@@ -14,13 +15,47 @@ async def get_users_on_territory_count(session: AsyncSession) -> int:
     return result.scalar_one()
 
 
-async def get_historical_maximum(session: AsyncSession) -> int:
-    """Рахує скільки унікальних людей відвідало подію за весь час."""
-    result = await session.execute(
-        select(func.count(func.distinct(ScanLog.telegram_id)))
-        .where(ScanLog.action_type == "in")
-    )
-    return result.scalar() or 0
+async def get_historical_maximum(session: AsyncSession, interval_minutes: int = 30) -> list[tuple[str, int]]:
+    stmt = select(ScanLog.scanned_at, ScanLog.action_type).order_by(
+        ScanLog.scanned_at)
+    result = await session.execute(stmt)
+    logs = result.all()
+
+    if not logs:
+        return []
+
+    occupancy_timeline = []
+    current_users = 0
+
+    for scanned_at, action in logs:
+        if action == "in":
+            current_users += 1
+        elif action == "out":
+            current_users = max(0, current_users - 1)
+        occupancy_timeline.append((scanned_at, current_users))
+
+    intervals_max = {}
+    kyiv_tz = ZoneInfo("Europe/Kyiv")  # 👈 Додано часовий пояс
+
+    for ts, occ in occupancy_timeline:
+        # 👈 Конвертація часу
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=ZoneInfo("UTC"))
+        local_ts = ts.astimezone(kyiv_tz)
+
+        minute_block = (local_ts.minute // interval_minutes) * interval_minutes
+        block_start = local_ts.replace(
+            minute=minute_block, second=0, microsecond=0)
+        block_end = block_start + timedelta(minutes=interval_minutes)
+
+        time_window = f"{block_start.strftime('%d.%m.%Y')} | {block_start.strftime('%H:%M')}-{block_end.strftime('%H:%M')}"
+
+        if time_window not in intervals_max or occ > intervals_max[time_window]:
+            intervals_max[time_window] = occ
+
+    sorted_peaks = sorted(intervals_max.items(),
+                          key=lambda x: x[1], reverse=True)
+    return sorted_peaks
 
 
 async def get_audience_portrait(session: AsyncSession, is_current: bool):
@@ -76,55 +111,84 @@ async def get_audience_portrait(session: AsyncSession, is_current: bool):
     return portrait
 
 
-async def get_traffic_peaks(session: AsyncSession, interval_minutes: int = 60) -> list[tuple[str, int]]:
-    # 1. Витягуємо всі часові мітки для входів
-    stmt = select(ScanLog.scanned_at).where(ScanLog.action_type == "in")
+async def get_traffic_peaks(session: AsyncSession, interval_minutes: int = 30) -> dict[str, list[tuple[str, int]]]:
+    stmt = select(ScanLog.scanned_at).where(
+        ScanLog.action_type == "in").order_by(ScanLog.scanned_at)
     result = await session.execute(stmt)
     timestamps = result.scalars().all()
 
     if not timestamps:
-        return []
+        return {}
 
-    traffic = {}
+    traffic_by_day = {}
+    kyiv_tz = ZoneInfo("Europe/Kyiv")  # 👈 Додано часовий пояс
 
     for ts in timestamps:
-        minute_block = (ts.minute // interval_minutes) * interval_minutes
+        # 👈 Конвертація часу
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=ZoneInfo("UTC"))
+        local_ts = ts.astimezone(kyiv_tz)
 
-        block_start = ts.replace(minute=minute_block, second=0, microsecond=0)
+        minute_block = (local_ts.minute // interval_minutes) * interval_minutes
+        block_start = local_ts.replace(
+            minute=minute_block, second=0, microsecond=0)
         block_end = block_start + timedelta(minutes=interval_minutes)
 
-        time_window = f"{block_start.strftime('%d.%m %H:%M')} - {block_end.strftime('%H:%M')}"
+        date_str = block_start.strftime('%d.%m.%Y')
+        time_window = f"{block_start.strftime('%H:%M')} - {block_end.strftime('%H:%M')}"
 
-        traffic[time_window] = traffic.get(time_window, 0) + 1
+        if date_str not in traffic_by_day:
+            traffic_by_day[date_str] = {}
 
-    sorted_peaks = sorted(traffic.items(), key=lambda x: x[1], reverse=True)
+        traffic_by_day[date_str][time_window] = traffic_by_day[date_str].get(
+            time_window, 0) + 1
 
-    return sorted_peaks
+    sorted_traffic = {}
+    for date_str, windows in traffic_by_day.items():
+        sorted_traffic[date_str] = sorted(
+            windows.items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_traffic
 
 
-async def get_outflow_dynamics(session: AsyncSession, interval_minutes: int = 60):
-    stmt = select(ScanLog.scanned_at).where(ScanLog.action_type == "out")
+async def get_outflow_dynamics(session: AsyncSession, interval_minutes: int = 30) -> dict[str, list[tuple[str, int]]]:
+    stmt = select(ScanLog.scanned_at).where(
+        ScanLog.action_type == "out").order_by(ScanLog.scanned_at)
     result = await session.execute(stmt)
     timestamps = result.scalars().all()
 
     if not timestamps:
-        return []
+        return {}
 
-    traffic = {}
+    traffic_by_day = {}
+    kyiv_tz = ZoneInfo("Europe/Kyiv")  # 👈 Додано часовий пояс
 
     for ts in timestamps:
-        minute_block = (ts.minute // interval_minutes) * interval_minutes
+        # 👈 Конвертація часу
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=ZoneInfo("UTC"))
+        local_ts = ts.astimezone(kyiv_tz)
 
-        block_start = ts.replace(minute=minute_block, second=0, microsecond=0)
+        minute_block = (local_ts.minute // interval_minutes) * interval_minutes
+        block_start = local_ts.replace(
+            minute=minute_block, second=0, microsecond=0)
         block_end = block_start + timedelta(minutes=interval_minutes)
 
-        time_window = f"{block_start.strftime('%d.%m %H:%M')} - {block_end.strftime('%H:%M')}"
+        date_str = block_start.strftime('%d.%m.%Y')
+        time_window = f"{block_start.strftime('%H:%M')} - {block_end.strftime('%H:%M')}"
 
-        traffic[time_window] = traffic.get(time_window, 0) + 1
+        if date_str not in traffic_by_day:
+            traffic_by_day[date_str] = {}
 
-    sorted_peaks = sorted(traffic.items(), key=lambda x: x[1], reverse=True)
+        traffic_by_day[date_str][time_window] = traffic_by_day[date_str].get(
+            time_window, 0) + 1
 
-    return sorted_peaks
+    sorted_outflow = {}
+    for date_str, windows in traffic_by_day.items():
+        sorted_outflow[date_str] = sorted(
+            windows.items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_outflow
 
 
 async def get_average_time_spent(session: AsyncSession, group_by_category: str) -> dict:
@@ -184,10 +248,16 @@ async def get_average_time_spent(session: AsyncSession, group_by_category: str) 
     for cat, stats in category_stats.items():
         if stats["visits"] > 0:
             avg_seconds = stats["seconds"] / stats["visits"]
-            averages[cat] = round(avg_seconds / 60)
+            # Тепер ми повертаємо словник з хвилинами ТА кількістю візитів для вирахування відсотків
+            averages[cat] = {
+                "minutes": round(avg_seconds / 60),
+                "visits": stats["visits"]
+            }
 
     sorted_averages = dict(
-        sorted(averages.items(), key=lambda item: item[1], reverse=True))
+        sorted(averages.items(),
+               key=lambda item: item[1]["minutes"], reverse=True)
+    )
 
     return sorted_averages
 
