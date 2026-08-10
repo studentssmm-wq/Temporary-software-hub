@@ -76,7 +76,7 @@ def get_time_spent_criteria_kb() -> InlineKeyboardMarkup:
 
     builder.row(
         InlineKeyboardButton(
-            text="🎓 За курсом", callback_data="stat_time_course"
+            text="🎓 За віком", callback_data="stat_time_course"
         ),
         InlineKeyboardButton(
             text="🚻 За статтю", callback_data="stat_time_gender"

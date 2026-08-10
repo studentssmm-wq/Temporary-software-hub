@@ -12,12 +12,18 @@ from app.repositories.stats_repository import (
 
 
 async def generate_historical_maximum_report(session: AsyncSession) -> str:
-    """Формує звіт про історичний максимум відвідувачів."""
-    count = await get_historical_maximum(session)
-    return (
-        f"📈 <b>Історичний максимум:</b>\n\n"
-        f"За весь час подію відвідало <b>{count}</b> унікальних осіб."
-    )
+    """Формує звіт про історичний максимум (одночасне перебування)."""
+    # За замовчуванням рахуємо по 30 хв (можна змінити)
+    peaks = await get_historical_maximum(session, interval_minutes=30)
+
+    if not peaks:
+        return "🤷‍♂️ Наразі немає даних для розрахунку максимуму."
+
+    report = f"🏆 <b>Історичний максимум (Одночасно на локації):</b>\n\n"
+    for i, (time_window, count) in enumerate(peaks[:5], start=1):
+        report += f"<b>Топ {i}:</b> {time_window} ➡️ <b>{count} осіб</b>\n"
+
+    return report
 
 
 async def generate_audience_portrait_report(session: AsyncSession, is_current: bool) -> str:
@@ -57,52 +63,68 @@ async def generate_audience_portrait_report(session: AsyncSession, is_current: b
     return report
 
 
-async def generate_traffic_peaks_report(session: AsyncSession, interval_minutes: int = 60) -> str:
-    """Формує ТОП найзавантаженіших годин на вхід."""
-    peaks = await get_traffic_peaks(session, interval_minutes)
-    if not peaks:
-        return "🤷‍♂️ Наразі немає даних про входи на локацію."
+async def generate_traffic_peaks_report(session: AsyncSession, interval_minutes: int = 30) -> str:
+    peaks_by_day = await get_traffic_peaks(session, interval_minutes)
 
-    report = f"📈 <b>Топ-5 піків завантаженості (Вхід):</b>\n<i>(Інтервал: {interval_minutes} хв)</i>\n\n"
-    for i, (time_window, count) in enumerate(peaks[:5], start=1):
-        report += f"{i}. ⏰ {time_window} ➡️ <b>{count} людей</b>\n"
+    if not peaks_by_day:
+        return "🤷‍♂️ Наразі немає даних про входи."
 
-    return report
+    report = f"📈 <b>Топ піків завантаженості (ВХІД):</b>\n"
+
+    for date_str, peaks in peaks_by_day.items():
+        report += f"📅 <b>{date_str}</b>\n"
+        # Беремо тільки Топ-3 для конкретного дня
+        for i, (time_window, count) in enumerate(peaks[:3], start=1):
+            report += f"  <b>Топ {i}:</b> {time_window} ➡️ <b>{count} осіб</b>\n"
+        report += "\n"
+
+    return report.strip()
 
 
-async def generate_outflow_dynamics_report(session: AsyncSession, interval_minutes: int = 60) -> str:
-    """Формує ТОП періодів, коли люди масово виходили."""
-    peaks = await get_outflow_dynamics(session, interval_minutes)
-    if not peaks:
+async def generate_outflow_dynamics_report(session: AsyncSession, interval_minutes: int = 30) -> str:
+    peaks_by_day = await get_outflow_dynamics(session, interval_minutes)
+
+    if not peaks_by_day:
         return "🤷‍♂️ Наразі немає даних про виходи з локації."
 
-    report = f"🏃‍♂️ <b>Динаміка масового відтоку (Вихід):</b>\n<i>(Інтервал: {interval_minutes} хв)</i>\n\n"
-    for i, (time_window, count) in enumerate(peaks[:5], start=1):
-        report += f"{i}. ⏰ {time_window} ➡️ <b>{count} людей</b>\n"
+    report = f"🏃‍♂️ <b>Динаміка масового відтоку (ВИХІД):</b>\n"
 
-    return report
+    for date_str, peaks in peaks_by_day.items():
+        report += f"📅 <b>{date_str}</b>\n"
+        # Беремо тільки Топ-3 для конкретного дня
+        for i, (time_window, count) in enumerate(peaks[:3], start=1):
+            report += f"  <b>Топ {i}:</b> {time_window} ➡️ <b>{count} осіб</b>\n"
+        report += "\n"
+
+    return report.strip()
 
 
 async def generate_time_spent_report(session: AsyncSession, group_by_category: str) -> str:
-    """Перетворює хвилини у зручний формат (год/хв) та будує рейтинг."""
     data = await get_average_time_spent(session, group_by_category)
     if not data:
-        return "🤷‍♂️ Наразі немає завершених сесій (вхід+вихід) для підрахунку часу."
+        return "🤷‍♂️ Наразі немає завершених сесій для підрахунку."
 
-    labels = {
-        "gender": "Статтю",
-        "institute": "Інститутами",
-        "age": "Віком"
-    }
+    labels = {"gender": "Статтю", "institute": "Інститутами", "age": "Віком"}
     label = labels.get(group_by_category, "Категоріями")
+
+    # Вираховуємо загальну кількість візитів для відсотків
+    total_visits = sum(info["visits"] for info in data.values())
 
     report = f"⏳ <b>Середній час перебування:</b>\n<i>(Розбивка за {label.lower()})</i>\n\n"
 
-    for i, (cat, minutes) in enumerate(data.items(), start=1):
+    for i, (cat, info) in enumerate(data.items(), start=1):
+        minutes = info["minutes"]
+        visits = info["visits"]
+
+        # Рахуємо відсоток цієї категорії від загальної маси відвідувачів
+        percent = round((visits / total_visits) * 100,
+                        1) if total_visits > 0 else 0
+
         hours = minutes // 60
         mins = minutes % 60
         time_str = f"{hours} год {mins} хв" if hours > 0 else f"{mins} хв"
-        report += f"{i}. <b>{cat}</b>: {time_str}\n"
+
+        report += f"{i}. <b>{cat}</b>: {time_str} <i>({percent}% аудиторії)</i>\n"
 
     return report
 

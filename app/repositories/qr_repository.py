@@ -1,5 +1,6 @@
 from uuid import UUID
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,21 +58,23 @@ async def create_pass(
 async def toggle_pass(
     session: AsyncSession,
     qr_pass: QRPass,
-    scanner_id: int,  # 👈 Додаємо ID сканера
+    scanner_id: int,
 ) -> QRPass:
 
     qr_pass.is_on_territory = not qr_pass.is_on_territory
 
-    # 👈 Визначаємо тип дії (зайшов чи вийшов)
     action = "in" if qr_pass.is_on_territory else "out"
 
-    # 👈 Створюємо запис для статистики
+    # 👈 Отримуємо точний український час
+    kyiv_time = datetime.now(ZoneInfo("Europe/Kyiv"))
+
     scan_log = ScanLog(
         telegram_id=qr_pass.telegram_id,
         scanner_id=scanner_id,
-        action_type=action
+        action_type=action,
+        scanned_at=kyiv_time  # 👈 Записуємо точний час
     )
-    session.add(scan_log)  # Додаємо лог у сесію
+    session.add(scan_log)
 
     await session.commit()
     await session.refresh(qr_pass)
