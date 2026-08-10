@@ -6,12 +6,16 @@ from aiogram.exceptions import TelegramAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
 from app.filters.admin_filter import AdminFilter
-from app.keyboards.admin_keyboard import get_admin_main_kb, get_broadcast_target_kb
+from app.keyboards.admin_keyboard import (get_admin_main_kb, get_broadcast_target_kb,
+                                          get_schedule_menu_kb, get_finish_upload_kb, get_days_for_delete_kb)
 from app.keyboards.main_keyboard import get_main_menu_kb
 from app.keyboards.statistics_keyboard import get_statistics_main_kb
 from app.repositories.user_repository import update_user_role, get_users_for_broadcast
 
-from app.states.admin_states import AdminRoleState, BroadcastState
+from app.states.admin_states import AdminRoleState, BroadcastState, MediaUpdateState, ScheduleUpdateState
+from app.repositories.media_repository import update_media
+from datetime import datetime
+from app.repositories.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
 admin_router = Router()
 
 admin_router.message.filter(AdminFilter())
@@ -192,4 +196,117 @@ async def main_admin_callback(callback: CallbackQuery):
         "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
         reply_markup=get_admin_main_kb()
     )
+    await callback.answer()
+
+
+@admin_router.callback_query(F.data == "admin_update_map")
+async def ask_for_map_photo(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(MediaUpdateState.waiting_for_map)
+
+    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]
+    ])
+
+    await callback.message.edit_text(
+        "🖼 Надішліть картинку з новою мапою подій:",
+        reply_markup=cancel_kb
+    )
+    await callback.answer()
+
+
+@admin_router.message(MediaUpdateState.waiting_for_map, F.photo)
+async def process_map_photo(message: Message, state: FSMContext, session: AsyncSession):
+    # Telegram генерує кілька розмірів фото, [-1] — це найбільша якість
+    file_id = message.photo[-1].file_id
+
+    # Зберігаємо file_id в базу даних під іменем "map"
+    await update_media(session, "map", file_id)
+
+    await message.answer("✅ Мапу успішно оновлено!")
+    await state.clear()
+
+
+# --- МЕНЮ КЕРУВАННЯ РОЗКЛАДОМ ---
+@admin_router.callback_query(F.data == "admin_schedule_menu")
+async def schedule_menu_handler(callback: CallbackQuery):
+    await callback.message.edit_text("📅 Керування розкладом\nОберіть дію:",
+                                     reply_markup=get_schedule_menu_kb(), parse_mode="HTML")
+    await callback.answer()
+
+
+# --- ДОДАВАННЯ РОЗКЛАДУ ---
+@admin_router.callback_query(F.data == "schedule_add")
+async def schedule_add_start(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(ScheduleUpdateState.waiting_for_date)
+    await callback.message.edit_text(
+        "✍️ Введіть число місяця для розкладу (від 1 до 31):",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_schedule_menu")]])
+    )
+    await callback.answer()
+
+
+@admin_router.message(ScheduleUpdateState.waiting_for_date)
+async def schedule_process_day(message: Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("❌ Будь ласка, введіть лише число:")
+        return
+
+    event_day = int(message.text)
+
+    if event_day < 1 or event_day > 31:
+        await message.answer("❌ Число має бути від 1 до 31:")
+        return
+
+    await state.update_data(event_day=event_day)
+    await state.set_state(ScheduleUpdateState.waiting_for_photos)
+
+    await message.answer(
+        f"📅 Обрано: {event_day} число\n\n"
+        "🖼 Відправляйте фотографії розкладу (можна альбомом). "
+        "Коли надішлете всі — натисніть кнопку нижче.",
+        parse_mode="HTML",
+        reply_markup=get_finish_upload_kb()
+    )
+
+
+@admin_router.message(ScheduleUpdateState.waiting_for_photos, F.photo)
+async def schedule_process_photo(message: Message, state: FSMContext, session: AsyncSession):
+    data = await state.get_data()
+    event_day = data["event_day"]
+    file_id = message.photo[-1].file_id
+
+    await add_schedule_photo(session, event_day, file_id)
+
+
+@admin_router.callback_query(ScheduleUpdateState.waiting_for_photos, F.data == "schedule_finish")
+async def schedule_finish_upload(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("✅ Всі фотографії розкладу успішно збережено!")
+    await callback.answer()
+
+
+# --- ВИДАЛЕННЯ РОЗКЛАДУ ---
+@admin_router.callback_query(F.data == "schedule_delete")
+async def schedule_delete_start(callback: CallbackQuery, session: AsyncSession):
+    days = await get_schedule_days(session)
+    if not days:
+        await callback.message.edit_text("🤷‍♂️ Розкладів ще немає.",
+                                         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="admin_schedule_menu")]]))
+        return
+
+    await callback.message.edit_text("🗑 Оберіть день, розклад для якого хочете видалити:",
+                                     reply_markup=get_days_for_delete_kb(days))
+    await callback.answer()
+
+
+@admin_router.callback_query(F.data.startswith("del_sched_"))
+async def schedule_delete_process(callback: CallbackQuery, session: AsyncSession):
+    # Отримуємо число з callback_data (наприклад, з 'del_sched_4' дістаємо 4)
+    event_day = int(callback.data.replace("del_sched_", ""))
+
+    # Видаляємо розклад для цього дня
+    await delete_schedule_for_day(session, event_day)
+
+    # Оновлюємо повідомлення
+    await callback.message.edit_text(f"✅ Розклад на {event_day} число повністю видалено!")
     await callback.answer()

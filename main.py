@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 # Імпортуємо вашу функцію запуску бота
 from app.bot import start_bot
 
-
 # === Створюємо простий веб-сервер для Render ===
 class DummyHandler(BaseHTTPRequestHandler):
     def do_GET(self):

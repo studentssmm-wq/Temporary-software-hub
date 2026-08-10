@@ -16,7 +16,7 @@ from app.middlewares.database_middleware import DatabaseMiddleware
 async def set_bot_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="🚀 Запустити бота"),
-        # BotCommand(command="profile", description="👤 Мій профіль"),
+        BotCommand(command="menu", description="📋 Головне меню"), # <--- Додали рядок
         BotCommand(command="qr", description="📲 Отримати свій QR-код"),
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())

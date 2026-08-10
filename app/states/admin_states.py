@@ -8,3 +8,10 @@ class AdminRoleState(StatesGroup):
 
 class BroadcastState(StatesGroup):
     waiting_for_message = State()
+
+class MediaUpdateState(StatesGroup):
+    waiting_for_map = State()
+
+class ScheduleUpdateState(StatesGroup):
+    waiting_for_date = State()
+    waiting_for_photos = State()
