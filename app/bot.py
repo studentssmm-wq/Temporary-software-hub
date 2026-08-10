@@ -1,14 +1,16 @@
 import asyncio
+
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from app.config import BOT_TOKEN, DATABASE_URL
-from app.handlers.qr_handler import qr_router
-from app.handlers.admin_handler import admin_router
-from app.handlers.registration_handler import registration_router
-from app.handlers.profile_handler import profile_router
-from app.middlewares.database_middleware import DatabaseMiddleware
 from app.database.database import create_db_pool
+from app.handlers.admin_handler import admin_router
+from app.handlers.profile_handler import profile_router
+from app.handlers.qr_handler import qr_router
+from app.handlers.registration_handler import registration_router
+from app.handlers.stats_handler import stats_router
+from app.middlewares.database_middleware import DatabaseMiddleware
 
 
 async def set_bot_commands(bot: Bot):
@@ -28,7 +30,7 @@ async def start_bot():
 
     dp.update.middleware(DatabaseMiddleware(session_factory))
     dp.include_routers(qr_router, admin_router,
-                       registration_router)
+                       registration_router, stats_router)
 
     await set_bot_commands(bot)
     print("Бот запущено!")
