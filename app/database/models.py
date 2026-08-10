@@ -1,7 +1,7 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, ForeignKey, String
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -74,6 +74,14 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    # Зв'язок для отримання історії сканувань користувача
+    scan_logs: Mapped[list["ScanLog"]] = relationship(
+        "ScanLog",
+        foreign_keys="[ScanLog.telegram_id]",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 
 class QRPass(Base):
     __tablename__ = "qr_passes"
@@ -113,3 +121,46 @@ class ScheduleMedia(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     event_day: Mapped[int] = mapped_column(nullable=False)
     file_id: Mapped[str] = mapped_column(String(255), nullable=False)
+
+class ScanLog(Base):
+    __tablename__ = "scan_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    scanner_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    action_type: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+    )
+
+    scanned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    user: Mapped["User"] = relationship(
+        "User",
+        foreign_keys=[telegram_id],
+        back_populates="scan_logs",
+    )
+
+    scanner: Mapped["User"] = relationship(
+        "User",
+        foreign_keys=[scanner_id],
+    )

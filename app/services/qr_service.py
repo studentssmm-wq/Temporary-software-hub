@@ -47,6 +47,7 @@ async def create_qr_pass(session: AsyncSession, telegram_id: int):
 async def process_pass_scan(
     session: AsyncSession,
     pass_id: UUID,
+    scanner_id: int,  # 👈 Додаємо ID сканера
 ) -> tuple[QRPass | None, bool]:
 
     qr_pass = await get_pass(
@@ -62,6 +63,7 @@ async def process_pass_scan(
     await toggle_pass(
         session,
         qr_pass,
+        scanner_id,  # 👈 Передаємо ID сканера у репозиторій
     )
 
     return qr_pass, was_on_territory
