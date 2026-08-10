@@ -98,3 +98,18 @@ class QRPass(Base):
     user: Mapped["User"] = relationship(
         back_populates="qr_pass",
     )
+
+class BotMedia(Base):
+    __tablename__ = "bot_media"
+
+    # Назва медіа, наприклад "map" або "schedule"
+    name: Mapped[str] = mapped_column(String(50), primary_key=True)
+    # Унікальний код файлу в Telegram
+    file_id: Mapped[str] = mapped_column(String(255), nullable=False)
+
+class ScheduleMedia(Base):
+    __tablename__ = "schedule_media"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    event_day: Mapped[int] = mapped_column(nullable=False)
+    file_id: Mapped[str] = mapped_column(String(255), nullable=False)
