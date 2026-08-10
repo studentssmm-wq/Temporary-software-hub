@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models import QRPass
+from app.database.models import QRPass, ScanLog
 
 
 async def get_pass(
@@ -57,16 +57,23 @@ async def create_pass(
 async def toggle_pass(
     session: AsyncSession,
     qr_pass: QRPass,
+    scanner_id: int,  # 👈 Додаємо ID сканера
 ) -> QRPass:
 
     qr_pass.is_on_territory = not qr_pass.is_on_territory
+
+    # 👈 Визначаємо тип дії (зайшов чи вийшов)
+    action = "in" if qr_pass.is_on_territory else "out"
+
+    # 👈 Створюємо запис для статистики
+    scan_log = ScanLog(
+        telegram_id=qr_pass.telegram_id,
+        scanner_id=scanner_id,
+        action_type=action
+    )
+    session.add(scan_log)  # Додаємо лог у сесію
 
     await session.commit()
     await session.refresh(qr_pass)
 
     return qr_pass
-
-
-async def get_users_on_territory_count(session: AsyncSession):
-    count = await session.scalar(select(func.count()).select_from(QRPass).where(QRPass.is_on_territory == True))
-    return count

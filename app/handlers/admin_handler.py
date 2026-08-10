@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from app.filters.admin_filter import AdminFilter
 from app.keyboards.admin_keyboard import get_admin_main_kb, get_broadcast_target_kb
 from app.keyboards.main_keyboard import get_main_menu_kb
-from app.repositories.qr_repository import get_users_on_territory_count
+from app.keyboards.statistics_keyboard import get_statistics_main_kb
 from app.repositories.user_repository import update_user_role, get_users_for_broadcast
 
 from app.states.admin_states import AdminRoleState, BroadcastState
@@ -64,9 +64,11 @@ async def back_to_main_handler(callback: CallbackQuery, state: FSMContext):
 
 @admin_router.callback_query(F.data == "admin_stats")
 async def show_stats_handler(callback: CallbackQuery, session: AsyncSession):
-    count = await get_users_on_territory_count(session)
 
-    await callback.message.answer(f"📊 Зараз на території перебуває: {count} осіб.")
+    await callback.message.edit_text(
+        "Оберіть тип звіту:",
+        reply_markup=get_statistics_main_kb()
+    )
     await callback.answer()
 
 
