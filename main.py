@@ -12,6 +12,11 @@ class DummyHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Bot is running")
+        
+    def do_HEAD(self):
+        # HEAD запит вимагає лише статус і заголовки, без тіла (без wfile.write)
+        self.send_response(200)
+        self.end_headers()
 
 def run_dummy_server():
     # Отримуємо порт, який вимагає Render, або беремо 10000 за замовчуванням
