@@ -1,4 +1,7 @@
-// Variáveis
+if (window.Telegram && window.Telegram.WebApp) {
+  window.Telegram.WebApp.ready();
+  window.Telegram.WebApp.expand(); // Розгортає Web App на весь екран
+}
 
 const open = document.querySelector("#open");
 const btn = document.querySelector("#btn");
@@ -6,26 +9,41 @@ const screenOne = document.querySelector(".screenOne");
 const screenTwo = document.querySelector(".screenTwo");
 
 const fortune = [
-"O sucesso é uma jornada, não um destino.", "Grandes sonhos começam com pequenas ações.", "As oportunidades surgem quando menos esperamos.", "Acredite em si mesmo e tudo será possível.", "O conhecimento é o tesouro da mente.", "Não tenha medo de falhar, isso faz parte do processo de aprendizagem.", "O tempo cura todas as feridas.", "Uma mente positiva atrai coisas positivas.", "Acredite em seus sonhos e siga em frente.", "As dificuldades são oportunidades disfarçadas.", "A vida é uma aventura, aproveite cada momento.", "O amor é a chave para a felicidade.", "Seja a mudança que você deseja ver no mundo.", "Você é capaz de realizar tudo o que deseja.", "A sorte está sempre do lado daqueles que trabalham duro.", "O sucesso é o resultado da perseverança e da dedicação.", "A verdadeira felicidade vem de dentro.", "A gratidão é a chave para uma vida plena.",
-"Você é único e especial, celebre sua individualidade.", "O mundo é seu para explorar, vá em frente e conquiste-o."
-]
+  "Успіх — це подорож, а не пункт призначення.",
+  "Великі мрії починаються з малих дій.",
+  "Можливості з'являються тоді, коли ми чекаємо на них найменше.",
+  "Повір у себе, і все стане можливим.",
+  "Знання — це скарб розуму.",
+  "Не бійся помилятися, це частина процесу навчання.",
+  "Час лікує всі рани.",
+  "Позитивне мислення приваблює позитивні події.",
+  "Вір у свої мрії та йди вперед.",
+  "Труднощі — це замасковані можливості.",
+  "Життя — це пригода, насолоджуйся кожною миттю.",
+  "Любов — це ключ до щастя.",
+  "Будь тією зміною, яку хочеш бачити у світі.",
+  "Ти здатний досягти всього, чого побажаєш.",
+  "Удача завжди на боці тих, хто наполегливо працює.",
+  "Успіх — це результат наполегливості та відданості своїй справі.",
+  "Справжнє щастя йде зсередини.",
+  "Вдячність — це ключ до повноцінного життя.",
+  "Ти унікальний і особливий, цінуй свою індивідуальність.",
+  "Світ відкритий для тебе — іди та підкорюй його!",
+];
 
 // Eventos
-open.addEventListener('click', firstClick);
+open.addEventListener("click", firstClick);
 
-btn.addEventListener('click', Click);
-
-
+btn.addEventListener("click", Click);
 
 // Funções
 
-function firstClick () {
+function firstClick() {
   Click();
   pickFortune();
-  
 }
 
-function Click(){
+function Click() {
   // Pego no documento a classe "screenOne" e adiciono/removo "hide";
   screenOne.classList.toggle("hide");
   // Pego no documento a classe "screenTwo" e removo/adiciono "hide";
@@ -33,7 +51,7 @@ function Click(){
 }
 
 function pickFortune() {
-  let allFortunes = fortune.length
-  let randomNumber = Math.floor(Math.random() * allFortunes)  
-  screenTwo.querySelector("h2").innerText = `${fortune[randomNumber]}`
+  let allFortunes = fortune.length;
+  let randomNumber = Math.floor(Math.random() * allFortunes);
+  screenTwo.querySelector("h2").innerText = `${fortune[randomNumber]}`;
 }
