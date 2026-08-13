@@ -1,0 +1,183 @@
+*{
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+
+:root{
+  font-size: 62.5%;
+}
+
+
+/* Screen One */
+
+.hide{
+  display: none;
+}
+
+body{
+ 
+  background: linear-gradient(45deg, #190361, #bb00ff);
+  animation: gradient 10s ease infinite;
+  background-size: 200% 200%;
+  
+  /* Torna o body display grid */
+  display: grid; 
+  /* Deixa todos os filhos do body no centro */
+  place-items: center;
+  /* Deixa o body do tamanho da tela  */
+  height: 100vh;
+}
+
+
+.screenOne{
+  background-color: white;
+  box-shadow: 0px 20px 50px rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  padding: 4.8rem 6.4rem 6.4rem;
+
+  text-align: center;
+}
+
+.screenOne h1{
+  font-family: 'Montserrat', sans-serif;
+
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 2.9rem;
+  
+  color: #34355B;
+
+  margin-bottom: 1.4rem;
+}
+
+.screenOne p{
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.5rem;
+  line-height: 2.0rem;
+
+  color: #34355B;
+  margin-bottom: 2rem;
+}
+
+#open{
+  background-color: white;
+}
+
+#open:hover{
+  cursor: pointer;
+  animation: shake 0.5s;
+  
+  /* Número de vezes que uma sequencia de animação pode ser repetida depois de acabar */
+  animation-iteration-count: infinite; 
+
+}
+
+/* ScreenTwo */
+.screenTwo{
+  background-color: white;
+  box-shadow: 0px 20px 50px rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  padding: 3.8rem 5.4rem;
+
+  width: 42.8rem;
+
+  text-align: center;
+}
+
+.screenTwo h1{
+  font-family: 'Montserrat', sans-serif;
+
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 2.9rem;
+  
+  color: #34355B;
+
+  margin-bottom: 1.7rem;
+
+
+}
+
+.screenTwo h2{
+  background-color: #E4EDF1;
+  box-shadow: 2px 2px 2px rgba(85, 85, 85, 0.5);
+  width: 27.3rem;
+  padding: 1rem;
+
+  font-family: 'Dancing Script', cursive;
+  font-weight: 400;
+  font-size: 2.4rem;
+  line-height: 2.9rem;
+
+  margin-bottom: 1.7rem;
+
+  margin-left: auto;
+  margin-right: auto;
+
+  animation: toFadeIn;
+  animation-duration: 1s;
+}
+
+#btn{
+  font-family: 'DM Sans', sans-serif;
+
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 20px;
+
+  text-align: center;
+
+  color: #FFFFFF;
+
+  background-color: #FF9500;
+  border-radius: .4rem;
+  padding: 1.6rem;
+
+  margin-top: 1.7rem;
+
+}
+
+/* Animações */
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+@keyframes toFadeIn {
+  0% {
+    transform:
+    translateY(30px)
+    scale(0.5);
+
+  }
+
+  100% {
+    transform:
+    translateY(0px)
+    scale(1);
+  }
+}
+
+@keyframes gradient {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
