@@ -1,5 +1,6 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 
 def get_main_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
@@ -7,7 +8,12 @@ def get_main_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder.button(text="📲 Мій QR-код", callback_data="main_qr")
     builder.button(text="🗺 Мапа подій", callback_data="event_map")
     builder.button(text="📅 Розклад подій", callback_data="event_schedule")
-
+    builder.button(
+        text="🥠 Печиво з передбаченням",
+        # Замініть на ваш реальний URL
+        web_app=WebAppInfo(
+            url="https://fortunecookie-seven.vercel.app/")
+    )
     if role == "admin":
         builder.button(text="👑 Адмін-панель", callback_data="main_admin")
 
@@ -15,6 +21,7 @@ def get_main_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder.adjust(1)
 
     return builder.as_markup()
+
 
 def get_start_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
@@ -38,7 +45,8 @@ def get_schedule_days_user_kb(days: list[int]) -> InlineKeyboardMarkup:
         builder.button(text=f"{d} число", callback_data=f"show_day_{d}")
 
     builder.adjust(3)
-    builder.row(InlineKeyboardButton(text="🔙 Головне меню", callback_data="main_menu"))
+    builder.row(InlineKeyboardButton(
+        text="🔙 Головне меню", callback_data="main_menu"))
     return builder.as_markup()
 
 
@@ -53,10 +61,14 @@ def get_schedule_pagination_kb(day: int, current_index: int, total: int) -> Inli
         next_idx = current_index + 1 if current_index < total - 1 else 0
 
         builder.row(
-            InlineKeyboardButton(text="⬅️", callback_data=f"sched_page_{day}_{prev_idx}"),
-            InlineKeyboardButton(text=f"{current_index + 1} / {total}", callback_data="ignore"),
-            InlineKeyboardButton(text="➡️", callback_data=f"sched_page_{day}_{next_idx}")
+            InlineKeyboardButton(
+                text="⬅️", callback_data=f"sched_page_{day}_{prev_idx}"),
+            InlineKeyboardButton(
+                text=f"{current_index + 1} / {total}", callback_data="ignore"),
+            InlineKeyboardButton(
+                text="➡️", callback_data=f"sched_page_{day}_{next_idx}")
         )
 
-    builder.row(InlineKeyboardButton(text="🔙 До списку днів", callback_data="event_schedule"))
+    builder.row(InlineKeyboardButton(
+        text="🔙 До списку днів", callback_data="event_schedule"))
     return builder.as_markup()
