@@ -7,7 +7,11 @@ class AdminRoleState(StatesGroup):
 
 
 class BroadcastState(StatesGroup):
-    waiting_for_message = State()
+    waiting_for_type = State()    # Очікуємо вибір: "Зараз" чи "На конкретний час"
+    waiting_for_date = State()    # Очікуємо вибір дати (inline-кнопки 1, 2, 3, 4 вересня)
+    waiting_for_time = State()    # Очікуємо введення часу вручну (формат ГГ:ХХ)
+    waiting_for_filter = State()  # Очікуємо вибір аудиторії (на території / поза / всі)
+    waiting_for_message = State() # Очікуємо сам текст або медіа розсилки
 
 class MediaUpdateState(StatesGroup):
     waiting_for_map = State()
