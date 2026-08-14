@@ -89,6 +89,7 @@ def get_broadcast_type_kb() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="⚡️ Зараз", callback_data="bcast_type_now"),
         InlineKeyboardButton(text="🕒 На конкретний час", callback_data="bcast_type_scheduled")
     )
+    builder.row(InlineKeyboardButton(text="🗑 Керування запланованими", callback_data="scheduled_list"))
     builder.row(
         InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")
     )
