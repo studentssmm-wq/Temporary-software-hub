@@ -1,3 +1,4 @@
+import re
 import asyncio
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
@@ -7,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram.fsm.context import FSMContext
 from app.filters.admin_filter import AdminFilter
 from app.keyboards.admin_keyboard import (get_admin_main_kb, get_broadcast_target_kb,
-                                          get_schedule_menu_kb, get_finish_upload_kb, get_days_for_delete_kb)
+                                          get_schedule_menu_kb, get_finish_upload_kb, get_days_for_delete_kb,
+                                          get_broadcast_type_kb, get_broadcast_date_kb)
 from app.keyboards.main_keyboard import get_main_menu_kb
 from app.keyboards.statistics_keyboard import get_statistics_main_kb
 from app.repositories.user_repository import update_user_role, get_users_for_broadcast
@@ -16,6 +18,9 @@ from app.states.admin_states import AdminRoleState, BroadcastState, MediaUpdateS
 from app.repositories.media_repository import update_media
 from datetime import datetime
 from app.repositories.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
+from app.database.models import ScheduledMailing
+
+
 admin_router = Router()
 
 admin_router.message.filter(AdminFilter())
@@ -127,31 +132,84 @@ async def process_volunteer_id(message: Message, state: FSMContext, session: Asy
 
 
 @admin_router.callback_query(F.data == "admin_broadcast")
-async def broadcast_handler(callback: CallbackQuery):
+async def broadcast_handler(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(BroadcastState.waiting_for_type)
     await callback.message.edit_text(
-        "📢 Оберіть аудиторію для розсилки оголошення:",
-        reply_markup=get_broadcast_target_kb()
+        "📢 Коли бажаєте зробити розсилку?",
+        reply_markup=get_broadcast_type_kb()
     )
     await callback.answer()
 
 
-@admin_router.callback_query(F.data.in_(["broadcast_on", "broadcast_off", "broadcast_all"]))
+@admin_router.callback_query(BroadcastState.waiting_for_type, F.data.in_(["bcast_type_now", "bcast_type_scheduled"]))
+async def process_broadcast_type(callback: CallbackQuery, state: FSMContext):
+    bcast_type = "now" if callback.data == "bcast_type_now" else "scheduled"
+    await state.update_data(bcast_type=bcast_type)
+
+    if bcast_type == "now":
+        await state.set_state(BroadcastState.waiting_for_filter)
+        await callback.message.edit_text(
+            "📢 Оберіть аудиторію для розсилки:",
+            reply_markup=get_broadcast_target_kb()
+        )
+    else:
+        await state.set_state(BroadcastState.waiting_for_date)
+        await callback.message.edit_text(
+            "📅 Оберіть дату розсилки:",
+            reply_markup=get_broadcast_date_kb()
+        )
+    await callback.answer()
+
+
+@admin_router.callback_query(BroadcastState.waiting_for_date, F.data.startswith("bcast_date_"))
+async def process_broadcast_date(callback: CallbackQuery, state: FSMContext):
+    date_str = callback.data.split("_")[2]
+    await state.update_data(bcast_date=date_str)
+    await state.set_state(BroadcastState.waiting_for_time)
+
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]])
+    await callback.message.edit_text(
+        f"📅 Обрано дату: {date_str}\n\n"
+        "✍️ Тепер введіть час для розсилки у форматі ГГ:ХХ (наприклад 14:30):",
+        parse_mode="HTML",
+        reply_markup=cancel_kb
+    )
+    await callback.answer()
+
+
+@admin_router.message(BroadcastState.waiting_for_time)
+async def process_broadcast_time(message: Message, state: FSMContext):
+    time_text = message.text.strip()
+
+    if not re.match(r"^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$", time_text):
+        await message.answer("⚠️ Неправильний формат часу. Будь ласка, введіть час у форматі ГГ:ХХ (наприклад, 14:30):")
+        return
+
+    await state.update_data(bcast_time=time_text)
+    await state.set_state(BroadcastState.waiting_for_filter)
+
+    await message.answer(
+        f"🕒 Час встановлено: {time_text}\n\n"
+        "📢 Оберіть аудиторію для розсилки:",
+        parse_mode="HTML",
+        reply_markup=get_broadcast_target_kb()
+    )
+
+
+@admin_router.callback_query(BroadcastState.waiting_for_filter,
+                             F.data.in_(["broadcast_on", "broadcast_off", "broadcast_all"]))
 async def ask_broadcast_message(callback: CallbackQuery, state: FSMContext):
     target = callback.data.split("_")[1]
-
     await state.update_data(target=target)
     await state.set_state(BroadcastState.waiting_for_message)
 
-    # 👈 Створюємо кнопку скасування на льоту
-    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Скасувати",
-                              callback_data="admin_cancel")]
-    ])
-
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]])
     await callback.message.edit_text(
-        "✍️ Надішліть текст оголошення (можна форматувати текст):",
+        "✍️ Надішліть текст оголошення (можна форматувати текст, додавати фото/відео):",
         parse_mode="HTML",
-        reply_markup=cancel_kb  # 👈 Додаємо клавіатуру сюди
+        reply_markup=cancel_kb
     )
     await callback.answer()
 
@@ -160,31 +218,74 @@ async def ask_broadcast_message(callback: CallbackQuery, state: FSMContext):
 async def process_broadcast_message(message: Message, state: FSMContext, session: AsyncSession):
     data = await state.get_data()
     target = data.get("target")
+    bcast_type = data.get("bcast_type")
 
-    users_ids = await get_users_for_broadcast(session, target)
-    if not users_ids:
-        await message.answer("🤷‍♂️ За обраним критерієм не знайдено жодного користувача.")
-        await state.clear()
-        return
-    status_msg = await message.answer(f"⏳ Розпочинаю розсилку для {len(users_ids)} користувачів...")
+    if bcast_type == "now":
+        users_ids = await get_users_for_broadcast(session, target)
+        if not users_ids:
+            await message.answer("🤷‍♂️ За обраним критерієм не знайдено жодного користувача.")
+            await state.clear()
+            return
 
-    success_count = 0
-    fail_count = 0
+        status_msg = await message.answer(f"⏳ Розпочинаю розсилку для {len(users_ids)} користувачів...")
+        success_count = 0
+        fail_count = 0
 
-    for user_id in users_ids:
-        try:
-            await message.copy_to(chat_id=user_id)
-            success_count += 1
-        except TelegramAPIError:
-            fail_count += 1
-        await asyncio.sleep(0.05)
+        for user_id in users_ids:
+            try:
+                await message.copy_to(chat_id=user_id)
+                success_count += 1
+            except TelegramAPIError:
+                fail_count += 1
+            await asyncio.sleep(0.05)
 
-    await status_msg.edit_text(
-        f"✅ <b>Розсилку завершено!</b>\n\n"
-        f"📩 Успішно доставлено: {success_count}\n"
-        f"❌ Помилок (заблоковано): {fail_count}",
-        parse_mode="HTML"
-    )
+        await status_msg.edit_text(
+            f"✅ Розсилку завершено!\n\n"
+            f"📩 Успішно доставлено: {success_count}\n"
+            f"❌ Помилок (заблоковано): {fail_count}",
+            parse_mode="HTML"
+        )
+    else:
+        bcast_date = data.get("bcast_date")  # '01.09'
+        bcast_time = data.get("bcast_time")  # '14:30'
+
+        current_year = datetime.now().year
+        date_time_str = f"{bcast_date}.{current_year} {bcast_time}"
+        send_at = datetime.strptime(date_time_str, "%d.%m.%Y %H:%M")
+
+        media_type = None
+        media_file_id = None
+        text = message.text or message.caption
+
+        if message.photo:
+            media_type = "photo"
+            media_file_id = message.photo[-1].file_id
+        elif message.video:
+            media_type = "video"
+            media_file_id = message.video.file_id
+        elif message.document:
+            media_type = "document"
+            media_file_id = message.document.file_id
+
+        new_mailing = ScheduledMailing(
+            message_text=text,
+            media_file_id=media_file_id,
+            media_type=media_type,
+            audience=target,
+            send_at=send_at,
+            status="pending"
+        )
+        session.add(new_mailing)
+        await session.commit()
+
+        await message.answer(
+            f"✅ Розсилку успішно заплановано!\n\n"
+            f"📅 Дата: {bcast_date}\n"
+            f"🕒 Час: {bcast_time}\n"
+            f"👥 Аудиторія: {target}\n\n"
+            "Очікуйте, бот розішле її автоматично.",
+            parse_mode="HTML"
+        )
 
     await state.clear()
 

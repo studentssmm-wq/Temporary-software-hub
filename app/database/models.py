@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, String, func
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, String, func, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -166,4 +166,50 @@ class ScanLog(Base):
     scanner: Mapped["User"] = relationship(
         "User",
         foreign_keys=[scanner_id],
+    )
+
+
+class ScheduledMailing(Base):
+    __tablename__ = "scheduled_mailings"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True
+    )
+
+    message_text: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    media_file_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
+    media_type: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True
+    )
+
+    audience: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False
+    )
+
+    send_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="pending",
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )

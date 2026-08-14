@@ -79,3 +79,39 @@ def get_broadcast_target_kb() -> InlineKeyboardMarkup:
     )
 
     return builder.as_markup()
+
+
+def get_broadcast_type_kb() -> InlineKeyboardMarkup:
+    """Клавіатура для вибору коли робити розсилку"""
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        InlineKeyboardButton(text="⚡️ Зараз", callback_data="bcast_type_now"),
+        InlineKeyboardButton(text="🕒 На конкретний час", callback_data="bcast_type_scheduled")
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")
+    )
+
+    return builder.as_markup()
+
+
+def get_broadcast_date_kb() -> InlineKeyboardMarkup:
+    """Клавіатура для вибору дати розсилки (Тиждень першокурсника)"""
+    builder = InlineKeyboardBuilder()
+
+    # Дати жорстко зашиті згідно з ТЗ (1, 2, 3, 4 вересня)
+    # У callback_data передаємо дату, щоб потім легко було її розпарсити
+    builder.row(
+        InlineKeyboardButton(text="1 вересня", callback_data="bcast_date_01.09"),
+        InlineKeyboardButton(text="2 вересня", callback_data="bcast_date_02.09")
+    )
+    builder.row(
+        InlineKeyboardButton(text="3 вересня", callback_data="bcast_date_03.09"),
+        InlineKeyboardButton(text="4 вересня", callback_data="bcast_date_04.09")
+    )
+    builder.row(
+        InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")
+    )
+
+    return builder.as_markup()
