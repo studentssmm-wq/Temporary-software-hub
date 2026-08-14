@@ -19,7 +19,8 @@ from app.repositories.media_repository import update_media
 from datetime import datetime
 from app.repositories.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
 from app.database.models import ScheduledMailing
-
+from sqlalchemy import select, delete
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 admin_router = Router()
 
@@ -155,8 +156,9 @@ async def process_broadcast_type(callback: CallbackQuery, state: FSMContext):
     else:
         await state.set_state(BroadcastState.waiting_for_date)
         await callback.message.edit_text(
-            "📅 Оберіть дату розсилки:",
-            reply_markup=get_broadcast_date_kb()
+            "📅 Оберіть дату розсилки на клавіатурі\nабо <b>введіть вручну у форматі ДД.ММ.РРРР:</b>",
+            reply_markup=get_broadcast_date_kb(),
+            parse_mode="HTML"
         )
     await callback.answer()
 
@@ -288,6 +290,74 @@ async def process_broadcast_message(message: Message, state: FSMContext, session
         )
 
     await state.clear()
+
+
+@admin_router.message(BroadcastState.waiting_for_date)
+async def process_manual_date_input(message: Message, state: FSMContext):
+    try:
+        parsed_date = datetime.strptime(message.text.strip(), "%d.%m.%Y")
+        formatted_date = parsed_date.strftime("%d.%m")
+
+        await state.update_data(bcast_date=formatted_date)
+        await state.set_state(BroadcastState.waiting_for_time)
+
+        cancel_kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]]
+        )
+
+        await message.answer(
+            f"📅 Обрано дату: {formatted_date}\n\n"
+            "✍️ Тепер введіть час для розсилки у форматі ГГ:ХХ (наприклад: 14:30):",
+            reply_markup=cancel_kb
+        )
+    except ValueError:
+        await message.answer(
+            "❌ Неправильний формат дати.\n\n"
+            "Будь ласка, введіть дату у форматі <b>ДД.ММ.РРРР</b> (наприклад: 25.09.2026) або оберіть на клавіатурі.",
+            parse_mode="HTML"
+        )
+
+
+@admin_router.callback_query(F.data == "scheduled_list")
+async def show_scheduled_mailings(callback: CallbackQuery, session: AsyncSession):
+    result = await session.execute(
+        select(ScheduledMailing).where(ScheduledMailing.status == "pending")
+    )
+    mailings = result.scalars().all()
+
+    if not mailings:
+        return await callback.message.edit_text(
+            "📭 Немає запланованих розсилок.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="admin_broadcast")]])
+        )
+
+    builder = InlineKeyboardBuilder()
+
+    for m in mailings:
+        short_text = m.text[:15] + "..." if len(m.text) > 15 else m.text
+        time_str = m.send_at.strftime("%d.%m %H:%M")
+        builder.button(text=f"🗑 {time_str} | {short_text}", callback_data=f"del_mail_{m.id}")
+
+    builder.button(text="🔙 Назад", callback_data="admin_broadcast")
+    builder.adjust(1)
+
+    await callback.message.edit_text(
+        "🗓 <b>Заплановані розсилки</b>\n\nНатисніть на розсилку, щоб скасувати її:",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+
+@admin_router.callback_query(F.data.startswith("del_mail_"))
+async def delete_scheduled_mailing(callback: CallbackQuery, session: AsyncSession):
+    mailing_id = int(callback.data.split("_")[2])
+    await session.execute(
+        delete(ScheduledMailing).where(ScheduledMailing.id == mailing_id)
+    )
+    await session.commit()
+    await callback.answer("✅ Розсилку успішно скасовано!", show_alert=True)
+    await show_scheduled_mailings(callback, session)
 
 
 @admin_router.callback_query(F.data == "main_admin")
