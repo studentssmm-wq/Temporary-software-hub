@@ -2,7 +2,16 @@ if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
   window.Telegram.WebApp.expand(); // Розгортає Web App на весь екран
 }
-
+const initData = window.Telegram.WebApp.initData;
+fetch("https://temporary-software-hub.onrender.com/api/webapp/user", {
+  method: "GET",
+  headers: {
+    Authorization: `tma ${initData}`,
+    "Content-Type": "application/json",
+  },
+})
+  .then((response) => response.json())
+  .then((data) => console.log("Баланс користувача:", data.coins));
 const open = document.querySelector("#open");
 const btn = document.querySelector("#btn");
 const screenOne = document.querySelector(".screenOne");
