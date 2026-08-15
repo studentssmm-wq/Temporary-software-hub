@@ -326,17 +326,20 @@ async def show_scheduled_mailings(callback: CallbackQuery, session: AsyncSession
     mailings = result.scalars().all()
 
     if not mailings:
-        return await callback.message.edit_text(
+        await callback.message.edit_text(
             "📭 Немає запланованих розсилок.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[[InlineKeyboardButton(text="🔙 Назад", callback_data="admin_broadcast")]])
         )
+        return await callback.answer()
 
     builder = InlineKeyboardBuilder()
 
     for m in mailings:
-        short_text = m.text[:15] + "..." if len(m.text) > 15 else m.text
+        text_preview = m.message_text if m.message_text else "[Медіа]"
+        short_text = text_preview[:15] + "..." if len(text_preview) > 15 else text_preview
         time_str = m.send_at.strftime("%d.%m %H:%M")
+
         builder.button(text=f"🗑 {time_str} | {short_text}", callback_data=f"del_mail_{m.id}")
 
     builder.button(text="🔙 Назад", callback_data="admin_broadcast")
@@ -347,6 +350,7 @@ async def show_scheduled_mailings(callback: CallbackQuery, session: AsyncSession
         reply_markup=builder.as_markup(),
         parse_mode="HTML"
     )
+    await callback.answer()
 
 
 @admin_router.callback_query(F.data.startswith("del_mail_"))
