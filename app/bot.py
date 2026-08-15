@@ -1,5 +1,7 @@
+import os
 import asyncio
-
+import uvicorn
+from fastapi import FastAPI
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
@@ -13,12 +15,14 @@ from app.handlers.stats_handler import stats_router
 from app.middlewares.database_middleware import DatabaseMiddleware
 from app.services.mailing_service import process_scheduled_mailings
 
+from app.api.webhook_routes import mono_router
+
 
 async def set_bot_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="🚀 Запустити бота"),
         BotCommand(command="menu", description="📋 Головне меню"),
-        BotCommand(command="qr", description="📲 Отримати свій QR-код"),
+        # BotCommand(command="qr", description="📲 Отримати свій QR-код"),
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
 
@@ -35,9 +39,25 @@ async def start_bot():
                        registration_router, stats_router)
     asyncio.create_task(process_scheduled_mailings(bot, session_factory))
 
-    print("Бот запущений!")
+    app = FastAPI()
+
+    app.state.bot = bot
+    app.state.session_factory = session_factory
+    app.include_router(mono_router)
+
+    port = int(os.environ.get("PORT", 8000))
+
+    config = uvicorn.Config(app=app, host="0.0.0.0", port=port, loop="asyncio")
+    server = uvicorn.Server(config)
+
+    print(f"🚀 Запуск Telegram-бота та FastAPI сервера (порт {port})...")
 
     try:
-        await dp.start_polling(bot)
+        server_task = asyncio.create_task(server.serve())
+        bot_task = asyncio.create_task(dp.start_polling(bot))
+
+        await asyncio.gather(server_task, bot_task)
+    except asyncio.CancelledError:
+        print("Зупинка задач...")
     finally:
         await engine.dispose()
