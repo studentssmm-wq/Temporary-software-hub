@@ -1,22 +1,21 @@
+const API_BASE = "https://temporary-software-hub.onrender.com/api/webapp";
+let initData = "";
+
+// Ініціалізація Telegram Web App
 if (window.Telegram && window.Telegram.WebApp) {
   window.Telegram.WebApp.ready();
-  window.Telegram.WebApp.expand(); // Розгортає Web App на весь екран
+  window.Telegram.WebApp.expand();
+  initData = window.Telegram.WebApp.initData;
 }
-const initData = window.Telegram.WebApp.initData;
-fetch("https://temporary-software-hub.onrender.com/api/webapp/user", {
-  method: "GET",
-  headers: {
-    Authorization: `tma ${initData}`,
-    "Content-Type": "application/json",
-  },
-})
-  .then((response) => response.json())
-  .then((data) => console.log("Баланс користувача:", data.coins));
-const open = document.querySelector("#open");
-const btn = document.querySelector("#btn");
+
+// Елементи інтерфейсу
+const openBtn = document.querySelector("#open");
+const resetBtn = document.querySelector("#btn");
 const screenOne = document.querySelector(".screenOne");
 const screenTwo = document.querySelector(".screenTwo");
+const balanceDisplay = document.querySelector("#balanceDisplay");
 
+// Масив передбачень
 const fortune = [
   "Успіх — це подорож, а не пункт призначення.",
   "Великі мрії починаються з малих дій.",
@@ -40,23 +39,78 @@ const fortune = [
   "Світ відкритий для тебе — іди та підкорюй його!",
 ];
 
-// Eventos
-open.addEventListener("click", firstClick);
+// --- Взаємодія з сервером ---
 
-btn.addEventListener("click", Click);
+// 1. Завантаження балансу
+function loadBalance() {
+  if (!initData) return;
 
-// Funções
+  fetch(`${API_BASE}/user`, {
+    method: "GET",
+    headers: {
+      Authorization: `tma ${initData}`,
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.coins !== undefined) {
+        balanceDisplay.innerText = `${data.coins} 🦝`;
+      }
+    })
+    .catch((error) => console.error("Помилка завантаження балансу:", error));
+}
 
-function firstClick() {
-  Click();
+// 2. Спроба відкрити печиво (списання токенів)
+function handleCookieClick() {
+  // Блокуємо кнопку, щоб уникнути подвійних кліків
+  openBtn.disabled = true;
+  openBtn.style.opacity = "0.7";
+
+  fetch(`${API_BASE}/spend`, {
+    method: "POST",
+    headers: {
+      Authorization: `tma ${initData}`,
+      "Content-Type": "application/json",
+    },
+    // Списуємо 1 токен за використання
+    body: JSON.stringify({ amount: 1, feature: "fortune_cookie" }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Недостатньо коштів");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      // Якщо успішно: оновлюємо баланс і відкриваємо печиво
+      loadBalance();
+      openCookie();
+    })
+    .catch((error) => {
+      // Якщо токенів немає або сталася помилка
+      alert(
+        "У вас недостатньо Єнот-токенів! 😢 Поповніть баланс у профілі бота.",
+      );
+    })
+    .finally(() => {
+      // Розблоковуємо кнопку
+      openBtn.disabled = false;
+      openBtn.style.opacity = "1";
+    });
+}
+
+// --- Логіка інтерфейсу ---
+
+function openCookie() {
+  screenOne.classList.add("hide");
+  screenTwo.classList.remove("hide");
   pickFortune();
 }
 
-function Click() {
-  // Pego no documento a classe "screenOne" e adiciono/removo "hide";
-  screenOne.classList.toggle("hide");
-  // Pego no documento a classe "screenTwo" e removo/adiciono "hide";
-  screenTwo.classList.toggle("hide");
+function resetApp() {
+  screenOne.classList.remove("hide");
+  screenTwo.classList.add("hide");
 }
 
 function pickFortune() {
@@ -64,3 +118,10 @@ function pickFortune() {
   let randomNumber = Math.floor(Math.random() * allFortunes);
   screenTwo.querySelector("h2").innerText = `${fortune[randomNumber]}`;
 }
+
+// Додаємо слухачі подій
+openBtn.addEventListener("click", handleCookieClick);
+resetBtn.addEventListener("click", resetApp);
+
+// Завантажуємо баланс при старті
+loadBalance();

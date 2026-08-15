@@ -49,36 +49,6 @@ async def admin_panel_handler(message: Message, state: FSMContext):
     )
 
 
-@admin_router.message(Command("give"))
-async def give_tokens_command(message: Message, command: CommandObject, session: AsyncSession):
-    """Секретна команда для видачі токенів: /give <сума> [telegram_id]"""
-    if not command.args:
-        await message.answer("⚠️ Використання: <code>/give 100</code> або <code>/give 100 123456789</code>", parse_mode="HTML")
-        return
-
-    args = command.args.split()
-    try:
-        amount = int(args[0])
-        # Якщо ID не вказано, видаємо тому, хто написав команду
-        target_id = int(args[1]) if len(args) > 1 else message.from_user.id
-    except ValueError:
-        await message.answer("❌ Помилка: Сума та ID мають бути числами.")
-        return
-
-    # Використовуємо ваш існуючий сервіс для нарахування
-    success = await process_coin_transaction(
-        session=session,
-        telegram_id=target_id,
-        amount=amount,
-        feature="admin_bonus"
-    )
-
-    if success:
-        await message.answer(f"✅ Успішно видано <b>{amount} 🦝</b> користувачу <code>{target_id}</code>.", parse_mode="HTML")
-    else:
-        await message.answer("❌ Помилка: користувача з таким ID не знайдено.")
-
-
 @admin_router.callback_query(F.data == "admin_cancel")
 # Додано state
 async def cancel_action_handler(callback: CallbackQuery, state: FSMContext):
