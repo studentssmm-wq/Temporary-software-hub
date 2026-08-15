@@ -16,7 +16,7 @@ from app.repositories.user_repository import update_user_role, get_users_for_bro
 
 from app.states.admin_states import AdminRoleState, BroadcastState, MediaUpdateState, ScheduleUpdateState
 from app.repositories.media_repository import update_media
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from app.repositories.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
 from app.database.models import ScheduledMailing
 from sqlalchemy import select, delete
@@ -248,12 +248,14 @@ async def process_broadcast_message(message: Message, state: FSMContext, session
             parse_mode="HTML"
         )
     else:
-        bcast_date = data.get("bcast_date")  # '01.09'
-        bcast_time = data.get("bcast_time")  # '14:30'
+        bcast_date = data.get("bcast_date")
+        bcast_time = data.get("bcast_time")
 
         current_year = datetime.now().year
         date_time_str = f"{bcast_date}.{current_year} {bcast_time}"
-        send_at = datetime.strptime(date_time_str, "%d.%m.%Y %H:%M")
+
+        kyiv_tz = timezone(timedelta(hours=3))
+        send_at = datetime.strptime(date_time_str, "%d.%m.%Y %H:%M").replace(tzinfo=kyiv_tz)
 
         media_type = None
         media_file_id = None
