@@ -10,10 +10,8 @@ def get_main_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder.button(text="📅 Розклад подій", callback_data="event_schedule")
     builder.button(text="👤 Мій профіль", callback_data="main_profile")
     builder.button(
-        text="🥠 Печиво з передбаченням",
-        # Замініть на ваш реальний URL
-        web_app=WebAppInfo(
-            url="https://fortunecookie-seven.vercel.app/")
+        text="🎮 Ігровий Хаб",
+        web_app=WebAppInfo(url="https://fortunecookie-seven.vercel.app/")
     )
     if role == "admin":
         builder.button(text="👑 Адмін-панель", callback_data="main_admin")
