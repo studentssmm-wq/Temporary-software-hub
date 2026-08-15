@@ -13,6 +13,12 @@ async def root():
     return {"status": "FastAPI is running and ready for Webhooks"}
 
 
+@mono_router.get("/mono")
+async def mono_webhook_get():
+    """Обробка тестових GET-запитів від Монобанку"""
+    return {"status": "OK"}
+
+
 @mono_router.post("/mono")
 async def mono_webhook(request: Request):
     try:

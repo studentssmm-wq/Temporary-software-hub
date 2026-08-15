@@ -21,7 +21,8 @@ from app.repositories.schedule_repository import add_schedule_photo, get_schedul
 from app.database.models import ScheduledMailing
 from sqlalchemy import select, delete
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+from aiogram.filters import CommandObject
+from app.services.coin_service import process_coin_transaction
 admin_router = Router()
 
 admin_router.message.filter(AdminFilter())
@@ -46,6 +47,36 @@ async def admin_panel_handler(message: Message, state: FSMContext):
         "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
         reply_markup=get_admin_main_kb()
     )
+
+
+@admin_router.message(Command("give"))
+async def give_tokens_command(message: Message, command: CommandObject, session: AsyncSession):
+    """Секретна команда для видачі токенів: /give <сума> [telegram_id]"""
+    if not command.args:
+        await message.answer("⚠️ Використання: <code>/give 100</code> або <code>/give 100 123456789</code>", parse_mode="HTML")
+        return
+
+    args = command.args.split()
+    try:
+        amount = int(args[0])
+        # Якщо ID не вказано, видаємо тому, хто написав команду
+        target_id = int(args[1]) if len(args) > 1 else message.from_user.id
+    except ValueError:
+        await message.answer("❌ Помилка: Сума та ID мають бути числами.")
+        return
+
+    # Використовуємо ваш існуючий сервіс для нарахування
+    success = await process_coin_transaction(
+        session=session,
+        telegram_id=target_id,
+        amount=amount,
+        feature="admin_bonus"
+    )
+
+    if success:
+        await message.answer(f"✅ Успішно видано <b>{amount} 🦝</b> користувачу <code>{target_id}</code>.", parse_mode="HTML")
+    else:
+        await message.answer("❌ Помилка: користувача з таким ID не знайдено.")
 
 
 @admin_router.callback_query(F.data == "admin_cancel")
@@ -255,7 +286,8 @@ async def process_broadcast_message(message: Message, state: FSMContext, session
         date_time_str = f"{bcast_date}.{current_year} {bcast_time}"
 
         kyiv_tz = timezone(timedelta(hours=3))
-        send_at = datetime.strptime(date_time_str, "%d.%m.%Y %H:%M").replace(tzinfo=kyiv_tz)
+        send_at = datetime.strptime(
+            date_time_str, "%d.%m.%Y %H:%M").replace(tzinfo=kyiv_tz)
 
         media_type = None
         media_file_id = None
@@ -304,7 +336,8 @@ async def process_manual_date_input(message: Message, state: FSMContext):
         await state.set_state(BroadcastState.waiting_for_time)
 
         cancel_kb = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]]
+            inline_keyboard=[[InlineKeyboardButton(
+                text="🔙 Скасувати", callback_data="admin_cancel")]]
         )
 
         await message.answer(
@@ -339,10 +372,12 @@ async def show_scheduled_mailings(callback: CallbackQuery, session: AsyncSession
 
     for m in mailings:
         text_preview = m.message_text if m.message_text else "[Медіа]"
-        short_text = text_preview[:15] + "..." if len(text_preview) > 15 else text_preview
+        short_text = text_preview[:15] + \
+            "..." if len(text_preview) > 15 else text_preview
         time_str = m.send_at.strftime("%d.%m %H:%M")
 
-        builder.button(text=f"🗑 {time_str} | {short_text}", callback_data=f"del_mail_{m.id}")
+        builder.button(text=f"🗑 {time_str} | {short_text}",
+                       callback_data=f"del_mail_{m.id}")
 
     builder.button(text="🔙 Назад", callback_data="admin_broadcast")
     builder.adjust(1)
@@ -381,7 +416,8 @@ async def ask_for_map_photo(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MediaUpdateState.waiting_for_map)
 
     cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]
+        [InlineKeyboardButton(text="🔙 Скасувати",
+                              callback_data="admin_cancel")]
     ])
 
     await callback.message.edit_text(
@@ -417,7 +453,8 @@ async def schedule_add_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ScheduleUpdateState.waiting_for_date)
     await callback.message.edit_text(
         "✍️ Введіть число місяця для розкладу (від 1 до 31):",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_schedule_menu")]])
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+            text="🔙 Скасувати", callback_data="admin_schedule_menu")]])
     )
     await callback.answer()
 

@@ -4,7 +4,8 @@ import uvicorn
 from fastapi import FastAPI
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
-
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.webapp_routes import webapp_router
 from app.config import BOT_TOKEN, DATABASE_URL
 from app.database.database import create_db_pool
 from app.handlers.admin_handler import admin_router
@@ -41,10 +42,19 @@ async def start_bot():
 
     app = FastAPI()
 
+    app.add_middleware(
+        CORSMiddleware,
+        # У майбутньому замініть "*" на URL вашого Vercel, напр. ["https://fortunecookie-seven.vercel.app"]
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     app.state.bot = bot
     app.state.session_factory = session_factory
     app.include_router(mono_router)
-
+    app.include_router(webapp_router)
     port = int(os.environ.get("PORT", 8000))
 
     config = uvicorn.Config(app=app, host="0.0.0.0", port=port, loop="asyncio")
