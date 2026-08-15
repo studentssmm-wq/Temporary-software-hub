@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram import Bot
@@ -12,10 +12,12 @@ async def process_scheduled_mailings(bot: Bot, session_maker):
     """
     Фонова задача, яка перевіряє БД кожну хвилину і розсилає повідомлення.
     """
+    kyiv_tz = timezone(timedelta(hours=3))
+
     while True:
         try:
             async with session_maker() as session:
-                now = datetime.now()
+                now = datetime.now(kyiv_tz)
                 query = select(ScheduledMailing).where(
                     ScheduledMailing.status == "pending",
                     ScheduledMailing.send_at <= now
