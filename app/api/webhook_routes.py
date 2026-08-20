@@ -8,7 +8,7 @@ from app.services.coin_service import process_coin_transaction
 mono_router = APIRouter()
 
 
-@mono_router.get("/")
+@mono_router.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"status": "FastAPI is running and ready for Webhooks"}
 
