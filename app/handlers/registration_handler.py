@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.states.registration_states import Registration
 from app.keyboards.registration_keyboard import get_institutes_kb, non_student_kb, gender_kb, consent_kb
 from app.repositories.user_repository import create_user
-
+from app.keyboards.main_keyboard import get_main_menu_kb
 registration_router = Router()
 
 # КРОК 1: /register або /start
@@ -139,7 +139,11 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
         data_consent=is_consent
     )
 
-    await callback.message.edit_text("🎉 Реєстрація успішна! Тепер ти можеш користуватися ботом.")
+    
+    await callback.message.edit_text(
+        "🎉 Реєстрація успішна! Тепер ти можеш користуватися ботом.",
+        reply_markup=get_main_menu_kb("user")
+    )
     await state.clear()
 
 # Анти-дурак
