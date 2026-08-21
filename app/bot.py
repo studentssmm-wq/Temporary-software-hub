@@ -15,7 +15,7 @@ from app.handlers.registration_handler import registration_router
 from app.handlers.stats_handler import stats_router
 from app.middlewares.database_middleware import DatabaseMiddleware
 from app.services.mailing_service import process_scheduled_mailings
-
+from app.handlers.song_handler import song_router
 from app.api.webhook_routes import mono_router
 
 
@@ -37,7 +37,7 @@ async def start_bot():
     engine, session_factory = create_db_pool(DATABASE_URL)
     dp.update.middleware(DatabaseMiddleware(session_factory))
     dp.include_routers(qr_router, admin_router, profile_router,
-                       registration_router, stats_router)
+                       registration_router, stats_router, song_router)
     asyncio.create_task(process_scheduled_mailings(bot, session_factory))
 
     app = FastAPI()
