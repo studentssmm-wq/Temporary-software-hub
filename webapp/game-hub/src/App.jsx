@@ -28,22 +28,22 @@ const FORTUNES = [
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState("hub"); // 'hub', 'cookie', 'tarot'
-  const [balance, setBalance] = useState("⏳");
+  // const [balance, setBalance] = useState("⏳");
 
-  const fetchBalance = (dataStr) => {
-    fetch(`${API_BASE}/user`, {
-      method: "GET",
-      headers: {
-        Authorization: `tma ${dataStr}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.coins !== undefined) setBalance(data.coins);
-      })
-      .catch((err) => console.error("Помилка завантаження балансу:", err));
-  };
+  // const fetchBalance = (dataStr) => {
+  //   fetch(`${API_BASE}/user`, {
+  //     method: "GET",
+  //     headers: {
+  //       Authorization: `tma ${dataStr}`,
+  //       "Content-Type": "application/json",
+  //     },
+  //   })
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       if (data.coins !== undefined) setBalance(data.coins);
+  //     })
+  //     .catch((err) => console.error("Помилка завантаження балансу:", err));
+  // };
 
   // Ініціалізація Telegram та завантаження балансу
   useEffect(() => {
@@ -54,7 +54,7 @@ function App() {
       const data = window.Telegram.WebApp.initData;
 
       if (data) {
-        fetchBalance(data);
+        // fetchBalance(data);
       }
     }
   }, []);
@@ -62,7 +62,7 @@ function App() {
   return (
     <div className="app-container">
       {/* Плашка балансу */}
-      <div className="balance-display">Баланс: {balance} 🦝</div>
+      {/* <div className="balance-display">Баланс: {balance} 🦝</div> */}
 
       {/* ЕКРАН 1: ГОЛОВНИЙ ХАБ */}
       {currentScreen === "hub" && (
