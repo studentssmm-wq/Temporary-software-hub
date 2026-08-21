@@ -302,3 +302,16 @@ class ScheduledMailing(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+
+class Song(Base):
+    __tablename__ = "songs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    lyrics: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
