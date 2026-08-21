@@ -46,7 +46,7 @@ async def show_profile_handler(callback: CallbackQuery, session: AsyncSession):
         f"🎂 <b>Дата народження:</b> {user.birth_date.strftime('%d.%m.%Y')}\n"
         f"🚻 <b>Стать:</b> {user.gender}\n"
         f"──────────────\n"
-        f"🦝 <b>Баланс:</b> <b>{user.coins}</b> Єнот-токенів\n"
+        # f"🦝 <b>Баланс:</b> <b>{user.coins}</b> Єнот-токенів\n"
         f"🛡 <b>Роль:</b> {system_role}\n"
     )
 
