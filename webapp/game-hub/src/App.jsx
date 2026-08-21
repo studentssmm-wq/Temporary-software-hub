@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 const API_BASE = "https://temporary-software-hub.onrender.com/api/webapp";
@@ -9,14 +9,27 @@ const FORTUNES = [
   "Можливості з'являються тоді, коли ми чекаємо на них найменше.",
   "Повір у себе, і все стане можливим.",
   "Знання — це скарб розуму.",
+  "Не бійся помилятися, це частина процесу навчання.",
   "Час лікує всі рани.",
+  "Позитивне мислення приваблює позитивні події.",
+  "Вір у свої мрії та йди вперед.",
+  "Труднощі — це замасковані можливості.",
+  "Життя — це пригода, насолоджуйся кожною миттю.",
   "Любов — це ключ до щастя.",
-]; // Можете додати сюди всі ваші фрази
+  "Будь тією зміною, яку хочеш бачити у світі.",
+  "Ти здатний досягти всього, чого побажаєш.",
+  "Удача завжди на боці тих, хто наполегливо працює.",
+  "Успіх — це результат наполегливості та відданості своїй справі.",
+  "Справжнє щастя йде зсередини.",
+  "Вдячність — це ключ до повноцінного життя.",
+  "Ти унікальний і особливий, цінуй свою індивідуальність.",
+  "Світ відкритий для тебе — іди та підкорюй його!",
+];
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState("hub"); // 'hub', 'cookie', 'tarot'
   const [balance, setBalance] = useState("⏳");
-  const [initData, setInitData] = useState("");
+
   const fetchBalance = (dataStr) => {
     fetch(`${API_BASE}/user`, {
       method: "GET",
@@ -39,7 +52,6 @@ function App() {
       window.Telegram.WebApp.expand();
 
       const data = window.Telegram.WebApp.initData;
-      setInitData(data);
 
       if (data) {
         fetchBalance(data);
@@ -74,11 +86,7 @@ function App() {
 
       {/* ЕКРАН 2: ПЕЧИВО З ПЕРЕДБАЧЕННЯМ */}
       {currentScreen === "cookie" && (
-        <CookieGame
-          initData={initData}
-          goBack={() => setCurrentScreen("hub")}
-          refreshBalance={() => fetchBalance(initData)}
-        />
+        <CookieGame goBack={() => setCurrentScreen("hub")} />
       )}
 
       {/* ЕКРАН 3: ТАРО (Заглушка) */}
@@ -100,44 +108,14 @@ function App() {
 }
 
 // === КОМПОНЕНТ ГРИ "ПЕЧИВО" ===
-function CookieGame({ initData, goBack, refreshBalance }) {
-  const [cookieState, setCookieState] = useState("closed"); // 'closed', 'loading', 'opened'
+function CookieGame({ goBack }) {
+  const [cookieState, setCookieState] = useState("closed"); // 'closed', 'opened'
   const [fortuneText, setFortuneText] = useState("");
 
   const handleOpenCookie = () => {
-    if (!initData) {
-      alert("Відкрийте гру через Telegram!");
-      return;
-    }
-
-    setCookieState("loading");
-
-    fetch(`${API_BASE}/spend`, {
-      method: "POST",
-      headers: {
-        Authorization: `tma ${initData}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ amount: 1, feature: "fortune_cookie" }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Недостатньо токенів");
-        return res.json();
-      })
-      .then(() => {
-        // Успішне списання
-        refreshBalance(); // Оновлюємо баланс на екрані
-        const randomPhrase =
-          FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
-        setFortuneText(randomPhrase);
-        setCookieState("opened");
-      })
-      .catch((err) => {
-        alert(
-          "У вас недостатньо Єнот-токенів! 😢 Поповніть баланс у профілі бота.",
-        );
-        setCookieState("closed");
-      });
+    const randomPhrase = FORTUNES[Math.floor(Math.random() * FORTUNES.length)];
+    setFortuneText(randomPhrase);
+    setCookieState("opened");
   };
 
   return (
@@ -145,12 +123,8 @@ function CookieGame({ initData, goBack, refreshBalance }) {
       {cookieState !== "opened" ? (
         <>
           <h1>Яке передбачення чекає на тебе сьогодні?</h1>
-          <p>Розкриши печиво та дізнайся! (1 🦝)</p>
-          <button
-            className={`cookie-btn ${cookieState === "loading" ? "loading" : ""}`}
-            onClick={handleOpenCookie}
-            disabled={cookieState === "loading"}
-          >
+          <p>Розкриши печиво та дізнайся!</p>
+          <button className="cookie-btn" onClick={handleOpenCookie}>
             <img src="/images/fortune-cookie.png" alt="Печиво" />
           </button>
           <button className="back-btn" onClick={goBack}>
