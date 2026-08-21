@@ -11,8 +11,8 @@ profile_router = Router()
 
 def get_profile_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🦝 Поповнити баланс",
-                              callback_data="topup_balance")],
+        # [InlineKeyboardButton(text="🦝 Поповнити баланс",
+        #                       callback_data="topup_balance")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
     ])
 
