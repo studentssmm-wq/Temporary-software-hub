@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.models import User, QRPass
+from app.core.models import User, QRPass
 
 
 async def find_user_by_id(session: AsyncSession, id: UUID) -> User | None:

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.user_repository import find_user_by_id
-from app.repositories.coin_repository import create_coin_transaction
+from app.features.users.user_repository import find_user_by_id
+from app.features.payments.coin_repository import create_coin_transaction
 
 
 async def process_coin_transaction(session: AsyncSession, telegram_id: int, amount: int, feature: str) -> bool:

@@ -5,9 +5,9 @@ import urllib.parse
 from fastapi import APIRouter, Request, HTTPException, Header
 from pydantic import BaseModel
 
-from app.config import BOT_TOKEN
-from app.repositories.user_repository import find_user_by_id
-from app.services.coin_service import process_coin_transaction
+from app.core.config import BOT_TOKEN
+from app.features.users.user_repository import find_user_by_id
+from app.features.payments.coin_service import process_coin_transaction
 
 webapp_router = APIRouter(prefix="/api/webapp")
 

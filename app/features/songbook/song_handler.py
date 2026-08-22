@@ -4,13 +4,13 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.song_repository import (
+from app.features.songbook.song_repository import (
     get_all_songs, get_song_by_id, create_song, update_song, delete_song
 )
-from app.keyboards.song_keyboard import (
+from app.features.songbook.song_keyboard import (
     get_songs_list_kb, get_song_view_kb, get_cancel_song_kb, get_empty_songs_kb
 )
-from app.states.song_states import SongCreateState, SongEditState
+from app.features.songbook.song_states import SongCreateState, SongEditState
 
 song_router = Router()
 

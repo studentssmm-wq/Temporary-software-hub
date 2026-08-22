@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.models import BotMedia
+from app.core.models import BotMedia
 
 
 async def get_media(session: AsyncSession, name: str) -> str | None:

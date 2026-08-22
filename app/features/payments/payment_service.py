@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.payment_repository import create_payment
-from app.config import MONO_JAR_URL
+from app.features.payments.payment_repository import create_payment
+from app.core.config import MONO_JAR_URL
 
 
 async def generate_payment_link(session: AsyncSession, telegram_id: int) -> tuple[str, str]:

@@ -1,6 +1,6 @@
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.models import Song
+from app.core.models import Song
 
 
 async def get_all_songs(session: AsyncSession) -> list[Song]:

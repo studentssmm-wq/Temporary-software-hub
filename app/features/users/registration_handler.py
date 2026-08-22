@@ -4,10 +4,10 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.states.registration_states import Registration
-from app.keyboards.registration_keyboard import get_institutes_kb, non_student_kb, gender_kb, consent_kb
-from app.repositories.user_repository import create_user
-from app.keyboards.main_keyboard import get_main_menu_kb
+from app.features.users.registration_states import Registration
+from app.features.users.registration_keyboard import get_institutes_kb, non_student_kb, gender_kb, consent_kb
+from app.features.users.user_repository import create_user
+from app.shared.main_keyboard import get_main_menu_kb
 registration_router = Router()
 
 # КРОК 1: /register або /start
@@ -51,19 +51,23 @@ async def process_institute(callback: types.CallbackQuery, state: FSMContext):
         await state.update_data(institute=None, group=None)
         await state.set_state(Registration.non_student_role)
     else:
-        await callback.message.edit_text(f"Обрано інститут: {institute_name}\n\nНапиши свою групу (наприклад, ОІ-12):")
-        await state.update_data(institute=institute_name, non_student_role=None)
-        await state.set_state(Registration.group)
+        # await callback.message.edit_text(f"Обрано інститут: {institute_name}\n\nНапиши свою групу (наприклад, ОІ-12):")
+        # await state.update_data(institute=institute_name, non_student_role=None)
+        # await state.set_state(Registration.group)
+
+        await callback.message.edit_text(f"Обрано інститут: {institute_name}\n\nОбери свою стать:", reply_markup=gender_kb)
+        await state.update_data(institute=institute_name, non_student_role=None, group=None)
+        await state.set_state(Registration.gender)
     await callback.answer()
 
 # КРОК 4А: Група
 
 
-@registration_router.message(Registration.group)
-async def process_group(message: types.Message, state: FSMContext):
-    await state.update_data(group=message.text.upper())
-    await message.answer("Обери свою стать:", reply_markup=gender_kb)
-    await state.set_state(Registration.gender)
+# @registration_router.message(Registration.group)
+# async def process_group(message: types.Message, state: FSMContext):
+#     await state.update_data(group=message.text.upper())
+#     await message.answer("Обери свою стать:", reply_markup=gender_kb)
+#     await state.set_state(Registration.gender)
 
 # КРОК 4Б: Роль не студента
 
@@ -139,7 +143,6 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
         data_consent=is_consent
     )
 
-    
     await callback.message.edit_text(
         "🎉 Реєстрація успішна! Тепер ти можеш користуватися ботом.",
         reply_markup=get_main_menu_kb("user")

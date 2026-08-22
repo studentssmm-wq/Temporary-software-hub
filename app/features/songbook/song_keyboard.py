@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from app.database.models import Song
+from app.core.models import Song
 
 
 def get_songs_list_kb(songs: list[Song], is_admin: bool = False, page: int = 0, per_page: int = 6) -> InlineKeyboardMarkup:

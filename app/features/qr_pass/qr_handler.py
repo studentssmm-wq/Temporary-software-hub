@@ -3,15 +3,15 @@ from aiogram.types import BufferedInputFile, Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InputMediaPhoto
 from aiogram.filters import CommandStart, CommandObject, Command
-from app.services.qr_service import create_qr_pass, process_pass_scan
-from app.repositories.user_repository import find_user_by_id
+from app.features.qr_pass.qr_service import create_qr_pass, process_pass_scan
+from app.features.users.user_repository import find_user_by_id
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
-from app.states.registration_states import Registration
-from app.keyboards.main_keyboard import (get_main_menu_kb, get_start_menu_kb,
-                                         get_schedule_days_user_kb, get_schedule_pagination_kb)
-from app.repositories.media_repository import get_media
-from app.repositories.schedule_repository import get_schedule_days, get_schedule_photos_by_day
+from app.features.users.registration_states import Registration
+from app.shared.main_keyboard import (get_main_menu_kb, get_start_menu_kb,
+                                      get_schedule_days_user_kb, get_schedule_pagination_kb)
+from app.features.mailing.media_repository import get_media
+from app.features.mailing.schedule_repository import get_schedule_days, get_schedule_photos_by_day
 qr_router = Router()
 
 
@@ -179,7 +179,8 @@ async def start_handler(message: Message, session: AsyncSession, state: FSMConte
     if user:
         await message.answer(
             f"З поверненням, {user.first_name}! 👋\nОберіть потрібну дію нижче:",
-            reply_markup=get_start_menu_kb(user.user_role)  # <--- ОСЬ ТУТ ЗМІНА
+            reply_markup=get_start_menu_kb(
+                user.user_role)  # <--- ОСЬ ТУТ ЗМІНА
         )
     else:
         await state.update_data(

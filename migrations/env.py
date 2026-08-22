@@ -1,5 +1,5 @@
-from app.config import DATABASE_URL
-from app.database.models import Base
+from app.core.config import DATABASE_URL
+from app.core.models import Base
 import asyncio
 import os
 import sys
