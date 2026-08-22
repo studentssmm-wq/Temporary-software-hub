@@ -1,6 +1,6 @@
 from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.stats_repository import (
+from app.features.analytics.stats_repository import (
     get_historical_maximum,
     get_audience_portrait,
     get_traffic_peaks,

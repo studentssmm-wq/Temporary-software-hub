@@ -6,16 +6,17 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.webapp_routes import webapp_router
-from app.config import BOT_TOKEN, DATABASE_URL
-from app.database.database import create_db_pool
-from app.handlers.admin_handler import admin_router
-from app.handlers.profile_handler import profile_router
-from app.handlers.qr_handler import qr_router
-from app.handlers.registration_handler import registration_router
-from app.handlers.stats_handler import stats_router
-from app.middlewares.database_middleware import DatabaseMiddleware
-from app.services.mailing_service import process_scheduled_mailings
-from app.handlers.song_handler import song_router
+from app.core.config import BOT_TOKEN, DATABASE_URL
+from app.core.database import create_db_pool
+from app.core.middlewares.database_middleware import DatabaseMiddleware
+from app.features.qr_pass.qr_handler import qr_router
+from app.features.admin.admin_handler import admin_router
+from app.features.users.profile_handler import profile_router
+from app.features.users.registration_handler import registration_router
+from app.features.songbook.song_handler import song_router
+from app.features.analytics.stats_handler import stats_router
+from app.features.mailing.mailing_service import process_scheduled_mailings
+
 from app.api.webhook_routes import mono_router
 
 

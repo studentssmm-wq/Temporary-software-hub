@@ -1,11 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
-from app.database.models import ScheduledMailing
-from app.repositories.user_repository import get_users_for_broadcast
+from app.core.models import ScheduledMailing
+from app.features.users.user_repository import get_users_for_broadcast
 
 
 async def process_scheduled_mailings(bot: Bot, session_maker):

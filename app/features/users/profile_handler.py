@@ -1,8 +1,8 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.user_repository import find_user_by_id
-from app.services.payment_service import generate_payment_link
+from app.features.users.user_repository import find_user_by_id
+from app.features.payments.payment_service import generate_payment_link
 
 profile_router = Router()
 

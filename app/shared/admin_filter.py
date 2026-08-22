@@ -1,10 +1,8 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
-from app.database.models import User
-from app.repositories.user_repository import find_user_by_id
+from app.features.users.user_repository import find_user_by_id
 
 
 class AdminFilter(BaseFilter):

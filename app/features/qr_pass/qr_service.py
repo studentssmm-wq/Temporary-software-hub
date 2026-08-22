@@ -3,8 +3,8 @@ from io import BytesIO
 import segno
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.qr_repository import create_pass, get_pass_by_user, toggle_pass, get_pass
-from app.database.models import QRPass
+from app.features.qr_pass.qr_repository import create_pass, get_pass_by_user, toggle_pass, get_pass
+from app.core.models import QRPass
 
 
 def generate_pass_id() -> uuid.UUID:

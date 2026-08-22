@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models import QRPass, ScanLog
+from app.core.models import QRPass, ScanLog
 
 
 async def get_pass(

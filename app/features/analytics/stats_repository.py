@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import func, select, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
-from app.database.models import QRPass, ScanLog, User
+from app.core.models import QRPass, ScanLog, User
 from zoneinfo import ZoneInfo
 
 

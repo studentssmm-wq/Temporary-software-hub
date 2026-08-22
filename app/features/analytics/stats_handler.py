@@ -1,10 +1,10 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.keyboards.statistics_keyboard import get_deep_analytics_kb, get_time_spent_criteria_kb, get_portrait_criteria_kb, get_interval_criteria_kb, get_statistics_main_kb
-from app.repositories.stats_repository import get_users_on_territory_count
-from app.services.stats_service import (generate_historical_maximum_report, generate_audience_portrait_report, generate_outflow_dynamics_report,
-                                        generate_loyalty_index_report, generate_scanner_workload_report, generate_time_spent_report, generate_traffic_peaks_report, get_audience_portrait)
+from app.features.analytics.statistics_keyboard import get_deep_analytics_kb, get_time_spent_criteria_kb, get_portrait_criteria_kb, get_statistics_main_kb
+from app.features.analytics.stats_repository import get_users_on_territory_count
+from app.features.analytics.stats_service import (generate_historical_maximum_report, generate_audience_portrait_report, generate_outflow_dynamics_report,
+                                                  generate_loyalty_index_report, generate_scanner_workload_report, generate_time_spent_report, generate_traffic_peaks_report)
 
 
 from contextlib import suppress

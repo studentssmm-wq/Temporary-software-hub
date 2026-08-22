@@ -1,9 +1,9 @@
 import re
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request
 from aiogram import Bot
 
-from app.repositories.payment_repository import get_payment_by_invoice, update_payment_status
-from app.services.coin_service import process_coin_transaction
+from app.features.payments.payment_repository import get_payment_by_invoice, update_payment_status
+from app.features.payments.coin_service import process_coin_transaction
 
 mono_router = APIRouter()
 
