@@ -106,7 +106,7 @@ async def process_birth_date(message: types.Message, state: FSMContext):
         return
 
     await state.update_data(birth_date=valid_date.date())
-    await message.answer("Останній крок! Чи даєш ти згоду на обробку персональних даних?", reply_markup=consent_kb)
+    await message.answer("Останній крок! Продовжуючи реєстрацію, nи надаєш згоду на обробку твоїх персональних даних (інститут, вік, стать, час та місце перебування) для внутрішньої статистики заходу", reply_markup=consent_kb)
     await state.set_state(Registration.consent)
 
 # КРОК 7: Згода та ЗАПИС У БАЗУ
