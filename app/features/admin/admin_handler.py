@@ -415,6 +415,24 @@ async def schedule_menu_handler(callback: CallbackQuery):
                                      reply_markup=get_schedule_menu_kb(), parse_mode="HTML")
     await callback.answer()
 
+@admin_router.callback_query(F.data == "admin_meeting_menu")
+async def admin_meeting_upload_start(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    # 1. Видаляємо старі фото зустрічі (використовуємо 0 як фіктивний день)
+    await delete_schedule_for_day(session, 0)
+    
+    # 2. Зберігаємо 0 у стан FSM, щоб існуючий хендлер `schedule_process_photo` зберіг фото куди треба
+    await state.update_data(event_day=0)
+    await state.set_state(ScheduleUpdateState.waiting_for_photos)
+    
+    # 3. Просимо адміна надіслати фото і даємо кнопку завершення
+    await callback.message.edit_text(
+        "🖼 Старі фото зустрічей з адміністрацією очищено (якщо вони були).\n\n"
+        "Відправляйте <b>нові фотографії</b> (можна альбомом).\n"
+        "Коли надішлете всі — обов'язково натисніть кнопку нижче.",
+        parse_mode="HTML",
+        reply_markup=get_finish_upload_kb()
+    )
+    await callback.answer()
 
 # --- ДОДАВАННЯ РОЗКЛАДУ ---
 @admin_router.callback_query(F.data == "schedule_add")
