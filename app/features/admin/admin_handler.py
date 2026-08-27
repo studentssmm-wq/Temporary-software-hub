@@ -500,16 +500,34 @@ async def schedule_delete_start(callback: CallbackQuery, session: AsyncSession):
     await callback.answer()
 
 
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 @admin_router.callback_query(F.data.startswith("del_sched_"))
 async def schedule_delete_process(callback: CallbackQuery, session: AsyncSession):
     # Отримуємо число з callback_data (наприклад, з 'del_sched_4' дістаємо 4)
     event_day = int(callback.data.replace("del_sched_", ""))
 
+    # ЗАХИСТ: перевіряємо, чи це не 0 число
+    if event_day == 0:
+        await callback.answer(
+            "❌ Фото зустрічей з адміністрацією не можна видаляти через це меню!", 
+            show_alert=True
+        )
+        return  # Зупиняємо виконання функції, щоб не видалити дані з бази
+
     # Видаляємо розклад для цього дня
     await delete_schedule_for_day(session, event_day)
 
-    # Оновлюємо повідомлення
-    await callback.message.edit_text(f"✅ Розклад на {event_day} число повністю видалено!")
+    # Створюємо клавіатуру з кнопкою для повернення в меню розкладу
+    back_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Повернутися", callback_data="admin_schedule_menu")]
+    ])
+
+    # Оновлюємо повідомлення, додаючи клавіатуру
+    await callback.message.edit_text(
+        text=f"✅ Розклад на {event_day} число повністю видалено!",
+        reply_markup=back_kb
+    )
     await callback.answer()
 
 @admin_router.callback_query(F.data == "admin_meeting_menu")
