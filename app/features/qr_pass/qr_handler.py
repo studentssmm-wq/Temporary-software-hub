@@ -57,14 +57,16 @@ async def event_map_handler(callback: CallbackQuery, session: AsyncSession):
 
 @qr_router.callback_query(F.data == "event_schedule")
 async def event_schedule_handler(callback: CallbackQuery, session: AsyncSession):
-    days = await get_schedule_days(session)
+    # Отримуємо всі дні з бази
+    all_days = await get_schedule_days(session)
+    
+    # Відфільтровуємо 0, щоб він не показувався у списку
+    days = [day for day in all_days if day != 0]
 
     if not days:
         await callback.answer("❌ Розкладів ще немає.", show_alert=True)
         return
 
-    # Важливий нюанс: Telegram не дозволяє просто змінити текст на фото.
-    # Тому ми видаляємо попереднє повідомлення і надсилаємо нове.
     await callback.message.delete()
     await callback.message.answer(
         "📅 Оберіть день, розклад якого хочете переглянути:",
