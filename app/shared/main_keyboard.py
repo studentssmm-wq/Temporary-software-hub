@@ -10,6 +10,7 @@ def get_main_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder.button(text="📲 Мій QR-код", callback_data="main_qr")
     builder.button(text="🗺 Мапа подій", callback_data="event_map")
     builder.button(text="📅 Розклад подій", callback_data="event_schedule")
+    builder.button(text="🤝 Зустріч із адміністрацією", callback_data="admin_meeting_view")
     builder.button(text="📖 Пісенник", callback_data="user_songs_menu")
     builder.button(text="👤 Мій профіль", callback_data="main_profile")
     builder.button(
