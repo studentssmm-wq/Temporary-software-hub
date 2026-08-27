@@ -172,25 +172,33 @@ async def scan_qr(
     command: CommandObject,
     session: AsyncSession,
 ):
+    # 1. Отримуємо Telegram ID того, хто сканує
+    scanner_id = message.from_user.id
+
+    # 2. ПЕРЕВІРКА ПРАВ: Шукаємо сканера в базі та перевіряємо роль
+    scanner_user = await find_user_by_id(session, scanner_id)
+    
+    if not scanner_user or scanner_user.user_role not in ["admin", "volunteer"]:
+        await message.answer("❌ У вас немає прав для сканування перепусток!")
+        return # Зупиняємо виконання, якщо це звичайний юзер або незареєстрований
+
+    # 3. Обробка самого QR-коду (якщо перевірка пройдена)
     pass_id_str = command.args
 
     try:
         pass_id = UUID(pass_id_str)
     except ValueError:
-        await message.answer("❌ Недійсний QR-код.")
+        await message.answer("❌ Недійсний формат QR-коду.")
         return
 
-    # 2. Отримуємо Telegram ID волонтера (того, хто натиснув на посилання / сканував)
-    scanner_id = message.from_user.id
-
-    # 3. Передаємо scanner_id у сервіс
+    # 4. Передаємо scanner_id у сервіс
     qr_pass, was_on_territory = await process_pass_scan(
         session=session,
         pass_id=pass_id,
-        scanner_id=scanner_id  # 👈 Додано цей параметр
+        scanner_id=scanner_id
     )
 
-    # 4. Виводимо результат сканування
+    # 5. Виводимо результат сканування
     if not qr_pass:
         await message.answer("❌ Перепустку не знайдено в базі!")
         return
