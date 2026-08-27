@@ -493,3 +493,20 @@ async def schedule_delete_process(callback: CallbackQuery, session: AsyncSession
     # Оновлюємо повідомлення
     await callback.message.edit_text(f"✅ Розклад на {event_day} число повністю видалено!")
     await callback.answer()
+
+@admin_router.callback_query(F.data == "admin_meeting_menu")
+async def admin_meeting_upload_start(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
+    # Видаляємо старі фото зустрічі (використовуємо 0 як унікальний ідентифікатор)
+    await delete_schedule_for_day(session, 0) #[cite: 2]
+    
+    # Встановлюємо 0 як день у FSM дату, щоб існуючий хендлер фото зрозумів, куди зберігати
+    await state.update_data(event_day=0) #[cite: 2]
+    await state.set_state(ScheduleUpdateState.waiting_for_photos) #[cite: 2]
+    
+    await callback.message.edit_text(
+        "🖼 Старі фото видалено.\n\n"
+        "Відправляйте нові фотографії для 'Зустрічі з адміністрацією' (можна альбомом). "
+        "Коли надішлете всі — натисніть кнопку нижче.",
+        reply_markup=get_finish_upload_kb() # Перевикористовуємо існуючу кнопку завершення[cite: 3]
+    )
+    await callback.answer()
