@@ -73,6 +73,28 @@ async def event_schedule_handler(callback: CallbackQuery, session: AsyncSession)
     await callback.answer()
 
 
+
+
+# --- НОВИЙ ХЕНДЛЕР ДЛЯ КНОПКИ ЗУСТРІЧЕЙ ---
+@qr_router.callback_query(F.data == "admin_meeting_view")
+async def admin_meeting_view_handler(callback: CallbackQuery, session: AsyncSession):
+    # Використовуємо 0 як день для зустрічей з адміністрацією
+    photos = await get_schedule_photos_by_day(session, 0)
+
+    if not photos:
+        await callback.answer("❌ Фотографій зустрічі ще не завантажено.", show_alert=True)
+        return
+
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photos[0],
+        caption="🤝 Зустріч із адміністрацією",
+        parse_mode="HTML",
+        reply_markup=get_schedule_pagination_kb(0, 0, len(photos))
+    )
+    await callback.answer()
+
+# --- ОНОВЛЕНІ ІСНУЮЧІ ХЕНДЛЕРИ РОЗКЛАДУ ---
 @qr_router.callback_query(F.data.startswith("show_day_"))
 async def show_schedule_day_handler(callback: CallbackQuery, session: AsyncSession):
     day = int(callback.data.replace("show_day_", ""))
@@ -81,12 +103,15 @@ async def show_schedule_day_handler(callback: CallbackQuery, session: AsyncSessi
     if not photos:
         await callback.answer("❌ Фотографій не знайдено.", show_alert=True)
         return
+    
+    # Динамічний підпис: якщо 0 - то це зустріч, інакше - звичайний розклад
+    caption_text = "🤝 Зустріч із адміністрацією" if day == 0 else f"📅 Розклад на {day} число"
 
     # Знову видаляємо текстове повідомлення і надсилаємо фотографію (першу в списку, index=0)
     await callback.message.delete()
     await callback.message.answer_photo(
         photo=photos[0],
-        caption=f"📅 Розклад на {day} число",
+        caption=caption_text,
         parse_mode="HTML",
         reply_markup=get_schedule_pagination_kb(day, 0, len(photos))
     )
@@ -100,11 +125,14 @@ async def schedule_pagination_handler(callback: CallbackQuery, session: AsyncSes
     day, index = int(day_str), int(index_str)
 
     photos = await get_schedule_photos_by_day(session, day)
+    
+    # Динамічний підпис для пагінації
+    caption_text = "🤝 Зустріч із адміністрацією" if day == 0 else f"📅 Розклад на {day} число"
 
     # Використовуємо edit_media для плавної заміни картинки без надсилання нового повідомлення
     media = InputMediaPhoto(
         media=photos[index],
-        caption=f"📅 Розклад на {day} число",
+        caption=caption_text,
         parse_mode="HTML"
     )
 
@@ -113,7 +141,6 @@ async def schedule_pagination_handler(callback: CallbackQuery, session: AsyncSes
         reply_markup=get_schedule_pagination_kb(day, index, len(photos))
     )
     await callback.answer()
-
 
 @qr_router.callback_query(F.data == "ignore")
 async def ignore_callback(callback: CallbackQuery):
