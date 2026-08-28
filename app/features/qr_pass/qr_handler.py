@@ -216,19 +216,26 @@ async def start_handler(message: Message, session: AsyncSession, state: FSMConte
     if user:
         await message.answer(
             f"З поверненням, {user.first_name}! 👋\nОберіть потрібну дію нижче:",
-            reply_markup=get_start_menu_kb(
-                user.user_role)  # <--- ОСЬ ТУТ ЗМІНА
+            reply_markup=get_start_menu_kb(user.user_role)
         )
     else:
         await state.update_data(
             telegram_id=message.from_user.id,
             telegram_tag=message.from_user.username
         )
-        await message.answer(
-            "Привіт! Ти ще не зареєстрований.\nПочинаємо реєстрацію. Будь ласка, введи свій ПІБ (Прізвище та Ім'я):",
-            reply_markup=ReplyKeyboardRemove()
+        
+        # Клавіатура для запиту номера
+        contact_kb = ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text="📱 Поділитися номером", request_contact=True)]],
+            resize_keyboard=True,
+            one_time_keyboard=True
         )
-        await state.set_state(Registration.full_name)
+        
+        await message.answer(
+            "Привіт! Ти ще не зареєстрований.\nПочинаємо реєстрацію. Для початку, будь ласка, поділися номером телефону, натиснувши кнопку нижче:",
+            reply_markup=contact_kb
+        )
+        await state.set_state(Registration.phone_number)
 
 
 @qr_router.callback_query(F.data == "main_qr")
