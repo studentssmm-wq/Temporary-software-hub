@@ -11,7 +11,7 @@ from app.shared.main_keyboard import get_main_menu_kb
 registration_router = Router()
 
 # КРОК 1: /register або /start
-@registration_router.message(Command("register"))
+@registration_router.message(Command("start"))
 async def cmd_register(message: types.Message, state: FSMContext):
     await state.update_data(
         telegram_id=message.from_user.id,
