@@ -51,7 +51,8 @@ async def create_user(
     gender: str,
     birth_date: date,
     username: str | None,
-    data_consent: bool
+    data_consent: bool,
+    phone_number: str | None = None
 ) -> User:
     new_user = User(
         telegram_id=telegram_id,
@@ -63,7 +64,8 @@ async def create_user(
         gender=gender,
         birth_date=birth_date,
         username=username,
-        data_consent=data_consent
+        data_consent=data_consent,
+        phone_number=phone_number
     )
     session.add(new_user)
     await session.commit()
