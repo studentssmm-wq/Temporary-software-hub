@@ -11,28 +11,45 @@ from app.shared.main_keyboard import get_main_menu_kb
 registration_router = Router()
 
 # КРОК 1: /register або /start
-
-
 @registration_router.message(Command("register"))
 async def cmd_register(message: types.Message, state: FSMContext):
     await state.update_data(
         telegram_id=message.from_user.id,
         telegram_tag=message.from_user.username
     )
+    
+    # Створюємо клавіатуру для запиту контакту
+    contact_kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📱 Поділитися номером", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
     await message.answer(
-        "Привіт! Починаємо реєстрацію.\nБудь ласка, введи свій ПІБ (Прізвище та Ім'я):",
-        reply_markup=types.ReplyKeyboardRemove()
+        "Привіт! Починаємо реєстрацію.\nДля початку, будь ласка, натисни кнопку нижче, щоб поділитися номером телефону:",
+        reply_markup=contact_kb
+    )
+    await state.set_state(Registration.phone_number)
+
+# КРОК 2: Збереження номера телефону
+@registration_router.message(Registration.phone_number, F.contact)
+async def process_phone(message: types.Message, state: FSMContext):
+    phone = message.contact.phone_number
+    await state.update_data(phone_number=phone)
+
+    # Прибираємо клавіатуру з номером і просимо ПІБ
+    await message.answer(
+        "Дякую! Тепер введи своє Прізвище та Ім'я:",
+        reply_markup=ReplyKeyboardRemove()
     )
     await state.set_state(Registration.full_name)
 
-# КРОК 2: ПІБ
-
-
+# КРОК 3: ПІБ (Колишній Крок 2)
 @registration_router.message(Registration.full_name)
 async def process_full_name(message: types.Message, state: FSMContext):
     text = message.text.strip()
     if len(text.split()) < 2:
-        await message.answer("Будь ласка, введи повний ПІБ (мінімум Прізвище та Ім'я через пробіл):")
+        await message.answer("Будь ласка, введи Прізвище та Ім'я через пробіл:")
         return
 
     formatted_name = " ".join(word.capitalize() for word in text.split())
