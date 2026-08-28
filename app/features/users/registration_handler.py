@@ -140,7 +140,6 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
 
     data = await state.get_data()
 
-    # Розбиваємо ПІБ на Ім'я та Прізвище для твоєї БД
     name_parts = data['full_name'].split(maxsplit=1)
     last_name = name_parts[0]
     first_name = name_parts[1] if len(name_parts) > 1 else last_name
@@ -157,7 +156,8 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
         gender=data['gender'],
         birth_date=data['birth_date'],
         username=data.get('telegram_tag'),
-        data_consent=is_consent
+        data_consent=is_consent,
+        phone_number=data.get('phone_number')  # 👈 ДОДАЙТЕ ЦЕЙ РЯДОК
     )
 
     await callback.message.edit_text(
@@ -165,9 +165,6 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
         reply_markup=get_main_menu_kb("user")
     )
     await state.clear()
-
-# Анти-дурак
-
 
 @registration_router.message(Registration.institute)
 @registration_router.message(Registration.non_student_role)
