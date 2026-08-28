@@ -12,6 +12,7 @@ from app.shared.main_keyboard import (get_main_menu_kb, get_start_menu_kb,
                                       get_schedule_days_user_kb, get_schedule_pagination_kb)
 from app.features.mailing.media_repository import get_media
 from app.features.mailing.schedule_repository import get_schedule_days, get_schedule_photos_by_day
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 qr_router = Router()
 
 
