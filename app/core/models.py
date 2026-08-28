@@ -91,6 +91,8 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    
     coin_transactions: Mapped[list["CoinTransaction"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
