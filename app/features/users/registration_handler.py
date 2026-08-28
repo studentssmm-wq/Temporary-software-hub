@@ -18,9 +18,9 @@ async def cmd_register(message: types.Message, state: FSMContext):
         telegram_tag=message.from_user.username
     )
     
-    # Створюємо клавіатуру для запиту контакту
-    contact_kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📱 Поділитися номером", request_contact=True)]],
+    # Додано префікси types.
+    contact_kb = types.ReplyKeyboardMarkup(
+        keyboard=[[types.KeyboardButton(text="📱 Поділитися номером", request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True
     )
@@ -37,10 +37,10 @@ async def process_phone(message: types.Message, state: FSMContext):
     phone = message.contact.phone_number
     await state.update_data(phone_number=phone)
 
-    # Прибираємо клавіатуру з номером і просимо ПІБ
+    # Додано префікс types.
     await message.answer(
         "Дякую! Тепер введи своє Прізвище та Ім'я:",
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(Registration.full_name)
 
