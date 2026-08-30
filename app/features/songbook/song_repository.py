@@ -4,7 +4,7 @@ from app.core.models import Song
 
 
 async def get_all_songs(session: AsyncSession) -> list[Song]:
-    result = await session.execute(select(Song).order_by(Song.title))
+    result = await session.execute(select(Song).order_by(Song.id))
     return list(result.scalars().all())
 
 
