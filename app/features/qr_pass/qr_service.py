@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.features.qr_pass.qr_repository import create_pass, get_pass_by_user, toggle_pass, get_pass
 from app.core.models import QRPass
 from app.core.redis_client import redis_client
-
+import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 def generate_pass_id() -> uuid.UUID:
     return uuid.uuid4()
