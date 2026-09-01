@@ -1,3 +1,4 @@
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -6,12 +7,11 @@ from sqlalchemy.ext.asyncio import (
 
 
 def create_db_pool(database_url: str):
-    # Налаштовуємо пул з'єднань
+    # Використовуємо NullPool, щоб з'єднання закривалися миттєво
     engine = create_async_engine(
         database_url,
-        pool_size=10,         # 10 постійних відкритих з'єднань
-        max_overflow=10,      # Ще 10 резервних
-        pool_pre_ping=True,   # 🔥 САМЕ ЦЕЙ ПАРАМЕТР ФІКСИТЬ ВАШУ ПОМИЛКУ
+        poolclass=NullPool,
+        # pool_size, max_overflow та pool_pre_ping тут більше не потрібні
     )
 
     session_factory = async_sessionmaker(
