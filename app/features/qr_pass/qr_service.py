@@ -10,7 +10,6 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-
 def generate_pass_id() -> uuid.UUID:
     return uuid.uuid4()
 
