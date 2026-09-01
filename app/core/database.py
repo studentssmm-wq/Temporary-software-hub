@@ -4,20 +4,21 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+# Імпортуємо URL бази даних з твого конфігу
+from app.core.config import DATABASE_URL
 
+# Створюємо глобальний engine та session_maker, які тепер можна імпортувати куди завгодно
+engine = create_async_engine(
+    DATABASE_URL,
+    poolclass=NullPool,
+)
 
+session_maker = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+# Оновлюємо стару функцію, щоб bot.py продовжував працювати без змін
 def create_db_pool(database_url: str):
-    # Використовуємо NullPool, щоб з'єднання закривалися миттєво
-    engine = create_async_engine(
-        database_url,
-        poolclass=NullPool,
-        # pool_size, max_overflow та pool_pre_ping тут більше не потрібні
-    )
-
-    session_factory = async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-
-    return engine, session_factory
+    return engine, session_maker
