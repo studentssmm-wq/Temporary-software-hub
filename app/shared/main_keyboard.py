@@ -13,6 +13,10 @@ def get_main_menu_kb(role: str) -> InlineKeyboardMarkup:
     builder.button(text="🤝 Зустріч із адміністрацією", callback_data="admin_meeting_view")
     builder.button(text="📖 Пісенник", callback_data="user_songs_menu")
     builder.button(text="👤 Мій профіль", callback_data="main_profile")
+    builder.row(
+        InlineKeyboardButton(text="📜 Правила заходу", callback_data="event_rules"),
+        InlineKeyboardButton(text="❤️‍🩹 Укриття", callback_data="event_shelter")
+    )
     builder.button(
         text="📝 Реєстрація на стретчинг", 
         url="https://docs.google.com/forms/d/e/1FAIpQLSfa0hyj5JNJ21O1Hjq4Mz-yHeboymOOL__lNA1WvWFYoHmU3g/viewform" 

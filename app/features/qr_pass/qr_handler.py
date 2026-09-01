@@ -249,3 +249,34 @@ async def main_qr_callback(callback: CallbackQuery, session: AsyncSession):
 
     await callback.message.answer_photo(photo=photo, caption="Ось ваша QR-перепустка!")
     await callback.answer()
+
+@qr_router.callback_query(F.data == "event_rules")
+async def event_rules_handler(callback: CallbackQuery):
+    rules_text = (
+        "📜 <b>Нагадування про кілька простих правил поведінки під час нашого заходу:</b>\n\n"
+        "🚫 Перебувати в стані алкогольного або наркотичного спʼяніння та приносити/вживати алкогольні напої — <b>заборонено</b>.\n"
+        "🚬 Паління (у будь-яких його проявах та з використанням будь-яких (не) електронних засобів) на території заходу — <b>заборонено</b>.\n"
+        "🔪 Приносити, використовувати будь-які небезпечні предмети — <b>заборонено</b>.\n"
+        "🎒 Під час відвідин заходу не залишайте свої особисті речі без нагляду та не залишайте після себе сміття 🗑.\n\n"
+        "🤝 Наш захід, зокрема Тиждень першокурсника, це від студентів і для студентів. Це тижні підготовки. Тому не забуваймо ці не надскладні правила поведінки та взаємодії одне з одним до, під час та після заходу.\n\n"
+        "⚠️ <i>У випадку порушення правил або неадекватної реакції на зауваження, організатори залишають за собою право попросити покинути подію.</i>"
+    )
+    
+    await callback.message.answer(rules_text, parse_mode="HTML")
+    await callback.answer()
+
+
+@qr_router.callback_query(F.data == "event_shelter")
+async def event_shelter_handler(callback: CallbackQuery, session: AsyncSession):
+    video_file_id = await get_media(session, "shelter_video")
+    
+    if not video_file_id:
+        await callback.answer("❌ Відео з маршрутом до укриття ще не додано адміністратором.", show_alert=True)
+        return
+    
+    await callback.message.answer_video(
+        video=video_file_id,
+        caption="❤️‍🩹 <b>Маршрут до укриття</b>\n\nБудь ласка, зберігайте спокій та слідуйте інструкціям на відео.",
+        parse_mode="HTML"
+    )
+    await callback.answer()

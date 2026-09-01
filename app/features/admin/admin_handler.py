@@ -570,3 +570,27 @@ async def admin_meeting_upload_start(callback: CallbackQuery, state: FSMContext,
         reply_markup=get_finish_upload_kb() # Перевикористовуємо існуючу кнопку завершення[cite: 3]
     )
     await callback.answer()
+
+@admin_router.callback_query(F.data == "admin_update_shelter")
+async def ask_for_shelter_video(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(MediaUpdateState.waiting_for_shelter_video)
+
+    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]
+    ])
+
+    await callback.message.edit_text(
+        "🎥 Надішліть відео з маршрутом до укриття:",
+        reply_markup=cancel_kb
+    )
+    await callback.answer()
+
+@admin_router.message(MediaUpdateState.waiting_for_shelter_video, F.video)
+async def process_shelter_video(message: Message, state: FSMContext, session: AsyncSession):
+    file_id = message.video.file_id
+    
+    # Зберігаємо file_id в базу даних під іменем "shelter_video"
+    await update_media(session, "shelter_video", file_id)
+
+    await message.answer("✅ Відео укриття успішно оновлено!")
+    await state.clear()
