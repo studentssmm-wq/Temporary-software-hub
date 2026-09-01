@@ -15,7 +15,7 @@ from app.features.users.profile_handler import profile_router
 from app.features.users.registration_handler import registration_router
 from app.features.songbook.song_handler import song_router
 from app.features.analytics.stats_handler import stats_router
-from app.features.mailing.mailing_service import process_scheduled_mailings
+from app.features.mailing.mailing_service import restore_pending_mailings_on_startup
 from app.core.background_tasks import process_redis_queue  
 
 
@@ -41,7 +41,16 @@ async def start_bot():
     dp.update.middleware(DatabaseMiddleware(session_factory))
     dp.include_routers(qr_router, admin_router, profile_router,
                        registration_router, stats_router, song_router)
-    asyncio.create_task(process_scheduled_mailings(bot, session_factory))
+    
+    # ❌ ЦЕ ВИДАЛЯЄМО:
+    # asyncio.create_task(process_scheduled_mailings(bot, session_factory))
+
+    # ✅ ДОДАЄМО РЕЄСТРАЦІЮ ВІДНОВЛЕННЯ РОЗСИЛОК:
+    async def on_startup():
+        print("🔄 Відновлюємо заплановані розсилки в APScheduler...")
+        await restore_pending_mailings_on_startup(bot, session_factory)
+        
+    dp.startup.register(on_startup)
 
     asyncio.create_task(process_redis_queue(session_factory))
 
@@ -49,7 +58,6 @@ async def start_bot():
 
     app.add_middleware(
         CORSMiddleware,
-        # У майбутньому замініть "*" на URL вашого Vercel, напр. ["https://fortunecookie-seven.vercel.app"]
         allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],

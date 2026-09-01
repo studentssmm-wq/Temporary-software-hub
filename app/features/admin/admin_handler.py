@@ -22,6 +22,9 @@ from app.core.models import ScheduledMailing
 from sqlalchemy import select, delete
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from app.features.payments.coin_service import process_coin_transaction
+from apscheduler.jobstores.base import JobLookupError
+from app.features.mailing.mailing_service import scheduler, execute_mailing
+from app.core.database import session_maker # Зміни шлях на свій справжній
 admin_router = Router()
 
 admin_router.message.filter(AdminFilter())
@@ -282,6 +285,18 @@ async def process_broadcast_message(message: Message, state: FSMContext, session
         )
         session.add(new_mailing)
         await session.commit()
+        await session.refresh(new_mailing) # Отримуємо ID новоствореного запису
+
+        # Додаємо задачу в in-memory планувальник
+        # (Переконайся, що імпортував scheduler та функцію execute_mailing)
+        scheduler.add_job(
+            execute_mailing,
+            trigger='date',
+            run_date=new_mailing.send_at,
+            # Використовуємо message.bot для доступу до екземпляра бота
+            args=[new_mailing.id, message.bot, session_maker], 
+            id=f"mailing_{new_mailing.id}"
+        )
 
         await message.answer(
             f"✅ Розсилку успішно заплановано!\n\n"
@@ -359,6 +374,8 @@ async def show_scheduled_mailings(callback: CallbackQuery, session: AsyncSession
     await callback.answer()
 
 
+from apscheduler.jobstores.base import JobLookupError
+
 @admin_router.callback_query(F.data.startswith("del_mail_"))
 async def delete_scheduled_mailing(callback: CallbackQuery, session: AsyncSession):
     mailing_id = int(callback.data.split("_")[2])
@@ -366,6 +383,13 @@ async def delete_scheduled_mailing(callback: CallbackQuery, session: AsyncSessio
         delete(ScheduledMailing).where(ScheduledMailing.id == mailing_id)
     )
     await session.commit()
+    
+    # Видаляємо задачу з APScheduler
+    try:
+        scheduler.remove_job(f"mailing_{mailing_id}")
+    except JobLookupError:
+        pass # Задача могла вже зникнути з пам'яті після рестарту бота
+
     await callback.answer("✅ Розсилку успішно скасовано!", show_alert=True)
     await show_scheduled_mailings(callback, session)
 
