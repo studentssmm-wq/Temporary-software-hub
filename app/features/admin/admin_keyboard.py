@@ -20,8 +20,11 @@ def get_admin_main_kb() -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text="📅 Оновити розклад",
                 callback_data="admin_schedule_menu"))
     builder.row(
-        InlineKeyboardButton(text="🗺 Оновити карту", callback_data="admin_update_map"),
-        InlineKeyboardButton(text="❤️‍🩹 Оновити відео укриття", callback_data="admin_update_shelter")
+        InlineKeyboardButton(text="🗺 Оновити карту", callback_data="admin_update_map")
+    )
+    builder.row(
+        InlineKeyboardButton(text="🛡 Оновити відео укриття", callback_data="admin_update_shelter"),
+        InlineKeyboardButton(text="🧘‍♀️ Оновити відео стретчингу", callback_data="admin_update_stretching")
     )
     builder.row(InlineKeyboardButton(
         text="🤝 Оновити 'Зустріч із адмін.'", callback_data="admin_meeting_menu"))

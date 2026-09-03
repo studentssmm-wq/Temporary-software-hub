@@ -16,6 +16,7 @@ class BroadcastState(StatesGroup):
 class MediaUpdateState(StatesGroup):
     waiting_for_map = State()
     waiting_for_shelter_video = State()
+    waiting_for_stretching_video = State()
 
 class ScheduleUpdateState(StatesGroup):
     waiting_for_date = State()

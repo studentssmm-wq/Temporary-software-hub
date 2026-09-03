@@ -280,3 +280,18 @@ async def event_shelter_handler(callback: CallbackQuery, session: AsyncSession):
         parse_mode="HTML"
     )
     await callback.answer()
+    
+@qr_router.callback_query(F.data == "event_stretching")
+async def event_stretching_handler(callback: CallbackQuery, session: AsyncSession):
+    video_file_id = await get_media(session, "stretching_video")
+    
+    if not video_file_id:
+        await callback.answer("❌ Відео з маршрутом до локації стретчингу ще не додано адміністратором.", show_alert=True)
+        return
+    
+    await callback.message.answer_video(
+        video=video_file_id,
+        caption="🧘‍♀️ <b>Локація стретчингу</b>\n\nОсь відео-маршрут, як дістатися до нашої локації для розтяжки.",
+        parse_mode="HTML"
+    )
+    await callback.answer()
