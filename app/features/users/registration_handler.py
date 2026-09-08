@@ -1,35 +1,61 @@
 from datetime import datetime
-from aiogram import Router, types, F
-from aiogram.filters import Command
+
+from aiogram import F, Router, types
+from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.users.registration_keyboard import (
+    consent_kb,
+    gender_kb,
+    get_institutes_kb,
+    non_student_kb,
+)
 from app.features.users.registration_states import Registration
-from app.features.users.registration_keyboard import get_institutes_kb, non_student_kb, gender_kb, consent_kb
-from app.features.users.user_repository import create_user
-from app.shared.main_keyboard import get_main_menu_kb
+from app.features.users.user_repository import create_user, find_user_by_id
+from app.shared.main_keyboard import get_main_menu_kb, get_start_menu_kb
+
+start_router = Router()
 registration_router = Router()
 
-# КРОК 1: /register або /start
-@registration_router.message(Command("start"))
-async def cmd_register(message: types.Message, state: FSMContext):
-    await state.update_data(
-        telegram_id=message.from_user.id,
-        telegram_tag=message.from_user.username
-    )
-    
-    # Додано префікси types.
-    contact_kb = types.ReplyKeyboardMarkup(
-        keyboard=[[types.KeyboardButton(text="📱 Поділитися номером", request_contact=True)]],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
 
-    await message.answer(
-        "Привіт! Починаємо реєстрацію.\nДля початку, будь ласка, натисни кнопку нижче, щоб поділитися номером телефону:",
-        reply_markup=contact_kb
-    )
-    await state.set_state(Registration.phone_number)
+@start_router.message(CommandStart())
+async def start_handler(
+    message: types.Message, session: AsyncSession, state: FSMContext
+):
+    if message.from_user is None:
+        return
+
+    user = await find_user_by_id(session, message.from_user.id)
+
+    if user:
+        await message.answer(
+            f"З поверненням, {user.first_name}! 👋\nОберіть потрібну дію нижче:",
+            reply_markup=get_start_menu_kb(user.user_role),
+        )
+    else:
+        await state.update_data(
+            telegram_id=message.from_user.id, telegram_tag=message.from_user.username
+        )
+
+        contact_kb = types.ReplyKeyboardMarkup(
+            keyboard=[
+                [
+                    types.KeyboardButton(
+                        text="📱 Поділитися номером", request_contact=True
+                    )
+                ]
+            ],
+            resize_keyboard=True,
+            one_time_keyboard=True,
+        )
+
+        await message.answer(
+            "Привіт! Ти ще не зареєстрований.\nПочинаємо реєстрацію. Для початку, будь ласка, поділися номером телефону, натиснувши кнопку нижче:",
+            reply_markup=contact_kb,
+        )
+        await state.set_state(Registration.phone_number)
+
 
 # КРОК 2: Збереження номера телефону
 @registration_router.message(Registration.phone_number, F.contact)

@@ -1,16 +1,13 @@
-from uuid import UUID
 from datetime import date
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.models import User, QRPass
+
+from app.core.models import QRPass, User
 
 
-async def find_user_by_id(session: AsyncSession, id: UUID) -> User | None:
-    result = await session.execute(
-        select(User).where(User.telegram_id == id)
-    )
-    user = result.scalar_one_or_none()
-    return user
+async def find_user_by_id(session: AsyncSession, id: int) -> User | None:
+    return await session.get(User, id)
 
 
 async def update_user_role(session: AsyncSession, id: int, role: str):
@@ -19,7 +16,6 @@ async def update_user_role(session: AsyncSession, id: int, role: str):
         return None
     user.user_role = role
     await session.commit()
-    await session.refresh(user)
     return user
 
 

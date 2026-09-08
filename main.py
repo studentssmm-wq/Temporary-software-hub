@@ -1,6 +1,5 @@
-
 import asyncio
-from app.core.background_tasks import process_redis_queue
+
 from app.bot import start_bot
 
 if __name__ == "__main__":
