@@ -3,6 +3,9 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardBut
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.features.users.user_repository import find_user_by_id
 from app.features.payments.payment_service import generate_payment_link
+from aiogram.types import ReplyKeyboardRemove
+from aiogram.fsm.context import FSMContext
+from app.features.users.registration_states import Registration
 
 profile_router = Router()
 
@@ -11,8 +14,10 @@ profile_router = Router()
 
 def get_profile_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        # [InlineKeyboardButton(text="🦝 Поповнити баланс",
-        #                       callback_data="topup_balance")],
+        # [InlineKeyboardButton(text="🦝 Поповнити баланс", callback_data="topup_balance")],
+
+        [InlineKeyboardButton(text="✏️ Змінити свої дані", callback_data="edit_profile")],
+
         [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
     ])
 
@@ -55,6 +60,31 @@ async def show_profile_handler(callback: CallbackQuery, session: AsyncSession):
         parse_mode="HTML",
         reply_markup=get_profile_kb()
     )
+    await callback.answer()
+
+
+@profile_router.callback_query(F.data == "edit_profile")
+async def edit_profile_handler(callback: CallbackQuery, state: FSMContext):
+    """Запускає FSM реєстрації по новій для оновлення даних"""
+
+    # Зберігаємо базові дані телеграму, щоб вони не загубилися
+    await state.update_data(
+        telegram_id=callback.from_user.id,
+        telegram_tag=callback.from_user.username
+    )
+
+    # Видаляємо старе повідомлення профілю з кнопками, щоб не засмічувати чат
+    await callback.message.delete()
+
+    # Пишемо повідомлення-привітання
+    await callback.message.answer(
+        "🔄 <b>Оновлення даних</b>\n\nБудь ласка, введіть свій актуальний ПІБ (Прізвище та Ім'я):",
+        parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    # Переводимо бота в стан очікування імені (як при старті)
+    await state.set_state(Registration.full_name)
     await callback.answer()
 
 

@@ -41,32 +41,47 @@ async def get_users_for_broadcast(session: AsyncSession, target: str) -> list[in
 
 
 async def create_user(
-    session: AsyncSession,
-    telegram_id: int,
-    first_name: str,
-    last_name: str | None,
-    institute: str | None,
-    non_student_type: str | None,
-    student_group: str | None,
-    gender: str,
-    birth_date: date,
-    username: str | None,
-    data_consent: bool,
-    phone_number: str | None = None
+        session: AsyncSession,
+        telegram_id: int,
+        first_name: str,
+        last_name: str | None,
+        institute: str | None,
+        non_student_type: str | None,
+        student_group: str | None,
+        gender: str,
+        birth_date: date,
+        username: str | None,
+        data_consent: bool,
+        phone_number: str | None = None
 ) -> User:
-    new_user = User(
-        telegram_id=telegram_id,
-        first_name=first_name,
-        last_name=last_name,
-        institute=institute,
-        non_student_type=non_student_type,
-        student_group=student_group,
-        gender=gender,
-        birth_date=birth_date,
-        username=username,
-        data_consent=data_consent,
-        phone_number=phone_number
-    )
-    session.add(new_user)
+    new_user = await find_user_by_id(session, telegram_id)
+
+    if new_user:
+        new_user.first_name = first_name
+        new_user.last_name = last_name
+        new_user.institute = institute
+        new_user.non_student_type = non_student_type
+        new_user.student_group = student_group
+        new_user.gender = gender
+        new_user.birth_date = birth_date
+        new_user.username = username
+        new_user.data_consent = data_consent
+        new_user.phone_number = phone_number
+    else:
+        new_user = User(
+            telegram_id=telegram_id,
+            first_name=first_name,
+            last_name=last_name,
+            institute=institute,
+            non_student_type=non_student_type,
+            student_group=student_group,
+            gender=gender,
+            birth_date=birth_date,
+            username=username,
+            data_consent=data_consent,
+            phone_number=phone_number
+        )
+        session.add(new_user)
+
     await session.commit()
     return new_user
