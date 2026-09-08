@@ -15,13 +15,12 @@ from app.features.analytics.statistics_keyboard import get_statistics_main_kb
 from app.features.users.user_repository import update_user_role, get_users_for_broadcast
 
 from app.features.admin.admin_states import AdminRoleState, BroadcastState, MediaUpdateState, ScheduleUpdateState
-from app.features.mailing.media_repository import update_media
+from app.features.events.media_repository import update_media
 from datetime import datetime, timedelta, timezone
-from app.features.mailing.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
+from app.features.events.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
 from app.core.models import ScheduledMailing
 from sqlalchemy import select, delete
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from app.features.payments.coin_service import process_coin_transaction
 from apscheduler.jobstores.base import JobLookupError
 from app.features.mailing.mailing_service import scheduler, execute_mailing
 from app.core.database import session_maker # Зміни шлях на свій справжній
