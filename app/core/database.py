@@ -1,4 +1,3 @@
-from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -10,7 +9,10 @@ from app.core.config import DATABASE_URL
 # Створюємо глобальний engine та session_maker, які тепер можна імпортувати куди завгодно
 engine = create_async_engine(
     DATABASE_URL,
-    poolclass=NullPool,
+    pool_size=5,
+    max_overflow=5,
+    pool_recycle=300,
+    pool_pre_ping=True,
 )
 
 session_maker = async_sessionmaker(

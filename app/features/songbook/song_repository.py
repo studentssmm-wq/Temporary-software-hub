@@ -17,7 +17,6 @@ async def create_song(session: AsyncSession, title: str, lyrics: str) -> Song:
     song = Song(title=title, lyrics=lyrics)
     session.add(song)
     await session.commit()
-    await session.refresh(song)
     return song
 
 
@@ -32,7 +31,6 @@ async def update_song(
     if lyrics is not None:
         song.lyrics = lyrics
     await session.commit()
-    await session.refresh(song)
     return song
 
 

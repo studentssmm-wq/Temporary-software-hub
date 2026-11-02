@@ -15,13 +15,12 @@ from app.features.analytics.statistics_keyboard import get_statistics_main_kb
 from app.features.users.user_repository import update_user_role, get_users_for_broadcast
 
 from app.features.admin.admin_states import AdminRoleState, BroadcastState, MediaUpdateState, ScheduleUpdateState
-from app.features.mailing.media_repository import update_media
+from app.features.events.media_repository import update_media
 from datetime import datetime, timedelta, timezone
-from app.features.mailing.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
+from app.features.events.schedule_repository import add_schedule_photo, get_schedule_days, delete_schedule_for_day
 from app.core.models import ScheduledMailing
 from sqlalchemy import select, delete
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from app.features.payments.coin_service import process_coin_transaction
 from apscheduler.jobstores.base import JobLookupError
 from app.features.mailing.mailing_service import scheduler, execute_mailing
 from app.core.database import session_maker # Зміни шлях на свій справжній
@@ -593,4 +592,28 @@ async def process_shelter_video(message: Message, state: FSMContext, session: As
     await update_media(session, "shelter_video", file_id)
 
     await message.answer("✅ Відео укриття успішно оновлено!")
+    await state.clear()
+    
+@admin_router.callback_query(F.data == "admin_update_stretching")
+async def ask_for_stretching_video(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(MediaUpdateState.waiting_for_stretching_video)
+
+    cancel_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Скасувати", callback_data="admin_cancel")]
+    ])
+
+    await callback.message.edit_text(
+        "🎥 Надішліть відео з маршрутом до локації стретчингу:",
+        reply_markup=cancel_kb
+    )
+    await callback.answer()
+
+@admin_router.message(MediaUpdateState.waiting_for_stretching_video, F.video)
+async def process_stretching_video(message: Message, state: FSMContext, session: AsyncSession):
+    file_id = message.video.file_id
+    
+    # Зберігаємо file_id в базу даних під іменем "stretching_video"
+    await update_media(session, "stretching_video", file_id)
+
+    await message.answer("✅ Відео локації стретчингу успішно оновлено!")
     await state.clear()

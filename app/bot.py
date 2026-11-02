@@ -1,25 +1,26 @@
-import os
 import asyncio
+import os
+
 import uvicorn
-from fastapi import FastAPI
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeDefault
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.webapp_routes import webapp_router
+from app.api.webhook_routes import mono_router
 from app.core.config import BOT_TOKEN, DATABASE_URL
 from app.core.database import create_db_pool
 from app.core.middlewares.database_middleware import DatabaseMiddleware
-from app.features.qr_pass.qr_handler import qr_router
 from app.features.admin.admin_handler import admin_router
-from app.features.users.profile_handler import profile_router
-from app.features.users.registration_handler import registration_router
-from app.features.songbook.song_handler import song_router
 from app.features.analytics.stats_handler import stats_router
+from app.features.events.event_handler import event_router
 from app.features.mailing.mailing_service import restore_pending_mailings_on_startup
-from app.core.background_tasks import process_redis_queue  
-
-
-from app.api.webhook_routes import mono_router
+from app.features.menu.menu_handler import menu_router
+from app.features.qr_pass.qr_handler import qr_router
+from app.features.songbook.song_handler import song_router
+from app.features.users.profile_handler import profile_router
+from app.features.users.registration_handler import registration_router, start_router
 
 
 async def set_bot_commands(bot: Bot):
@@ -39,8 +40,17 @@ async def start_bot():
 
     engine, session_factory = create_db_pool(DATABASE_URL)
     dp.update.middleware(DatabaseMiddleware(session_factory))
-    dp.include_routers(qr_router, admin_router, profile_router,
-                       registration_router, stats_router, song_router)
+    dp.include_routers(
+        qr_router,
+        start_router,
+        menu_router,
+        event_router,
+        admin_router,
+        profile_router,
+        registration_router,
+        stats_router,
+        song_router,
+    )
     
     # ❌ ЦЕ ВИДАЛЯЄМО:
     # asyncio.create_task(process_scheduled_mailings(bot, session_factory))
@@ -51,8 +61,6 @@ async def start_bot():
         await restore_pending_mailings_on_startup(bot, session_factory)
         
     dp.startup.register(on_startup)
-
-    asyncio.create_task(process_redis_queue(session_factory))
 
     app = FastAPI()
 

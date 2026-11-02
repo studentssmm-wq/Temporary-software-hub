@@ -12,7 +12,6 @@ async def create_payment(session: AsyncSession, telegram_id: int, amount: int, i
     )
     session.add(new_payment)
     await session.commit()
-    await session.refresh(new_payment)
     return new_payment
 
 
@@ -26,5 +25,4 @@ async def get_payment_by_invoice(session: AsyncSession, invoice_id: str) -> Paym
 async def update_payment_status(session: AsyncSession, payment: Payment, status: str) -> Payment:
     payment.status = status
     await session.commit()
-    await session.refresh(payment)
     return payment

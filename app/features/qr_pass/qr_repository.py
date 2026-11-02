@@ -1,35 +1,22 @@
-from uuid import UUID
 from datetime import datetime
+from uuid import UUID
 from zoneinfo import ZoneInfo
-from sqlalchemy import select, func
+
+from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.models import QRPass, ScanLog
 
 
-async def get_pass(
-    session: AsyncSession,
-    pass_id: UUID,
-) -> QRPass | None:
-
-    result = await session.execute(
-        select(QRPass).where(
-            QRPass.pass_id == pass_id
-        )
-    )
-
-    return result.scalar_one_or_none()
-
-
-async def get_pass_by_user(
+async def get_pass_id_by_user(
     session: AsyncSession,
     telegram_id: int,
-) -> QRPass | None:
+) -> UUID | None:
 
     result = await session.execute(
-        select(QRPass).where(
-            QRPass.telegram_id == telegram_id
-        )
+        select(QRPass.pass_id).where(QRPass.telegram_id == telegram_id)
     )
 
     return result.scalar_one_or_none()
@@ -39,44 +26,66 @@ async def create_pass(
     session: AsyncSession,
     pass_id: UUID,
     telegram_id: int,
-) -> QRPass:
+) -> UUID:
 
-    qr_pass = QRPass(
-        pass_id=pass_id,
-        telegram_id=telegram_id,
-        is_on_territory=False,
-    )
+    try:
+        result = await session.execute(
+            insert(QRPass)
+            .values(
+                pass_id=pass_id,
+                telegram_id=telegram_id,
+                is_on_territory=False,
+            )
+            .on_conflict_do_nothing(index_elements=[QRPass.telegram_id])
+            .returning(QRPass.pass_id)
+        )
+        created_pass_id = result.scalar_one_or_none()
 
-    session.add(qr_pass)
+        if created_pass_id is None:
+            result = await session.execute(
+                select(QRPass.pass_id).where(QRPass.telegram_id == telegram_id)
+            )
+            created_pass_id = result.scalar_one()
 
-    await session.commit()
-    await session.refresh(qr_pass)
+        await session.commit()
+    except SQLAlchemyError:
+        await session.rollback()
+        raise
 
-    return qr_pass
+    return created_pass_id
 
 
 async def toggle_pass(
     session: AsyncSession,
-    qr_pass: QRPass,
+    pass_id: UUID,
     scanner_id: int,
-) -> QRPass:
+) -> bool | None:
 
-    qr_pass.is_on_territory = not qr_pass.is_on_territory
+    try:
+        result = await session.execute(
+            update(QRPass)
+            .where(QRPass.pass_id == pass_id)
+            .values(is_on_territory=~QRPass.is_on_territory)
+            .returning(QRPass.telegram_id, QRPass.is_on_territory)
+            .execution_options(synchronize_session=False)
+        )
+        row = result.first()
 
-    action = "in" if qr_pass.is_on_territory else "out"
+        if row is None:
+            return None
 
-    # 👈 Отримуємо точний український час
-    kyiv_time = datetime.now(ZoneInfo("Europe/Kyiv"))
+        session.add(
+            ScanLog(
+                telegram_id=row.telegram_id,
+                scanner_id=scanner_id,
+                action_type="in" if row.is_on_territory else "out",
+                scanned_at=datetime.now(ZoneInfo("Europe/Kyiv")),
+            )
+        )
 
-    scan_log = ScanLog(
-        telegram_id=qr_pass.telegram_id,
-        scanner_id=scanner_id,
-        action_type=action,
-        scanned_at=kyiv_time  # 👈 Записуємо точний час
-    )
-    session.add(scan_log)
+        await session.commit()
+    except SQLAlchemyError:
+        await session.rollback()
+        raise
 
-    await session.commit()
-    await session.refresh(qr_pass)
-
-    return qr_pass
+    return row.is_on_territory
