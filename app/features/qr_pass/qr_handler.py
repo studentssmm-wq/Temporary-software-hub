@@ -1,3 +1,4 @@
+import asyncio
 from aiogram import Router, F
 from aiogram.types import BufferedInputFile, Message, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
@@ -14,6 +15,29 @@ from app.features.mailing.media_repository import get_media
 from app.features.mailing.schedule_repository import get_schedule_days, get_schedule_photos_by_day
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 qr_router = Router()
+
+_SCAN_REPLY_INTERVAL = 1.1
+_scan_reply_locks: dict[int, asyncio.Lock] = {}
+_last_scan_reply_at: dict[int, float] = {}
+
+
+async def _answer_scan_message(
+    message: Message,
+    text: str,
+    *,
+    parse_mode: str | None = None,
+) -> None:
+    scanner_id = message.chat.id
+    lock = _scan_reply_locks.setdefault(scanner_id, asyncio.Lock())
+
+    async with lock:
+        loop = asyncio.get_running_loop()
+        elapsed = loop.time() - _last_scan_reply_at.get(scanner_id, 0)
+        if elapsed < _SCAN_REPLY_INTERVAL:
+            await asyncio.sleep(_SCAN_REPLY_INTERVAL - elapsed)
+
+        await message.answer(text, parse_mode=parse_mode)
+        _last_scan_reply_at[scanner_id] = loop.time()
 
 
 @qr_router.message(Command("qr"))
@@ -180,7 +204,7 @@ async def scan_qr(
     scanner_user = await find_user_by_id(session, scanner_id)
     
     if not scanner_user or scanner_user.user_role not in ["admin", "volunteer"]:
-        await message.answer("❌ У вас немає прав для сканування перепусток!")
+        await _answer_scan_message(message, "❌ У вас немає прав для сканування перепусток!")
         return # Зупиняємо виконання, якщо це звичайний юзер або незареєстрований
 
     # 3. Обробка самого QR-коду (якщо перевірка пройдена)
@@ -189,7 +213,7 @@ async def scan_qr(
     try:
         pass_id = UUID(pass_id_str)
     except ValueError:
-        await message.answer("❌ Недійсний формат QR-коду.")
+        await _answer_scan_message(message, "❌ Недійсний формат QR-коду.")
         return
 
     # 4. Передаємо scanner_id у сервіс
@@ -201,13 +225,21 @@ async def scan_qr(
 
     # 5. Виводимо результат сканування
     if not qr_pass:
-        await message.answer("❌ Перепустку не знайдено в базі!")
+        await _answer_scan_message(message, "❌ Перепустку не знайдено в базі!")
         return
 
     if was_on_territory:
-        await message.answer("✅ <b>Успішно!</b>\nСтудент <b>вийшов</b> з локації.", parse_mode="HTML")
+        await _answer_scan_message(
+            message,
+            "✅ <b>Успішно!</b>\nСтудент <b>вийшов</b> з локації.",
+            parse_mode="HTML",
+        )
     else:
-        await message.answer("✅ <b>Успішно!</b>\nСтудент <b>зайшов</b> на локацію.", parse_mode="HTML")
+        await _answer_scan_message(
+            message,
+            "✅ <b>Успішно!</b>\nСтудент <b>зайшов</b> на локацію.",
+            parse_mode="HTML",
+        )
 
 
 @qr_router.message(CommandStart())
