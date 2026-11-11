@@ -4,6 +4,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def get_admin_main_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    builder.button(text="🎟 Квитки та події", callback_data="ticket:admin_home")
+    builder.button(text="❓ FAQ та підтримка", callback_data="support:admin")
 
     builder.row(InlineKeyboardButton(
         text="📊 Статистика", callback_data="admin_stats"))
@@ -15,7 +17,7 @@ def get_admin_main_kb() -> InlineKeyboardMarkup:
     )
     builder.row(InlineKeyboardButton(
         text="📢 Розсилка", callback_data="admin_broadcast"))
-    
+
     builder.row(InlineKeyboardButton(
         text="🔙 Головне меню", callback_data="back_to_main"))
     return builder.as_markup()
@@ -42,10 +44,10 @@ def get_finish_upload_kb() -> InlineKeyboardMarkup:
 def get_days_for_delete_kb(days: list[int]) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for d in days:
-        # Тепер ми передаємо просто число
+
         builder.button(text=f"{d} число", callback_data=f"del_sched_{d}")
 
-    builder.adjust(3)  # По 3 кнопки в ряд, бо вони тепер коротші
+    builder.adjust(3)
     builder.row(InlineKeyboardButton(text="🔙 Скасувати",
                 callback_data="admin_schedule_menu"))
     return builder.as_markup()
@@ -96,8 +98,8 @@ def get_broadcast_date_kb() -> InlineKeyboardMarkup:
     """Клавіатура для вибору дати розсилки (Тиждень першокурсника)"""
     builder = InlineKeyboardBuilder()
 
-    # Дати жорстко зашиті згідно з ТЗ (1, 2, 3, 4 вересня)
-    # У callback_data передаємо дату, щоб потім легко було її розпарсити
+
+
     builder.row(
         InlineKeyboardButton(
             text="1 вересня", callback_data="bcast_date_01.09"),

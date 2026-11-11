@@ -62,7 +62,8 @@ async def create_user(
         new_user.birth_date = birth_date
         new_user.username = username
         new_user.data_consent = data_consent
-        new_user.phone_number = phone_number
+        if phone_number is not None:
+            new_user.phone_number = phone_number
     else:
         new_user = User(
             telegram_id=telegram_id,

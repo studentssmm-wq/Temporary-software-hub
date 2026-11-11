@@ -14,9 +14,9 @@ from app.features.songbook.song_states import SongCreateState, SongEditState
 
 song_router = Router()
 
-# ============================
-# ДЛЯ КОРИСТУВАЧІВ (СТУДЕНТІВ)
-# ============================
+
+
+
 
 
 @song_router.callback_query(F.data == "user_songs_menu")
@@ -69,9 +69,9 @@ async def user_song_view_handler(callback: CallbackQuery, session: AsyncSession)
     await callback.answer()
 
 
-# ============================
-# АДМІНКА (CRUD)
-# ============================
+
+
+
 
 @song_router.callback_query(F.data == "admin_songs_menu")
 async def admin_songs_menu_handler(callback: CallbackQuery, session: AsyncSession, state: FSMContext):
@@ -123,7 +123,7 @@ async def admin_song_view_handler(callback: CallbackQuery, session: AsyncSession
     await callback.answer()
 
 
-# --- СТВОРЕННЯ ПІСНІ ---
+
 
 @song_router.callback_query(F.data == "admin_song_add")
 async def admin_song_add_start(callback: CallbackQuery, state: FSMContext):
@@ -169,7 +169,7 @@ async def admin_song_add_lyrics(message: Message, state: FSMContext, session: As
     )
 
 
-# --- РЕДАГУВАННЯ ПІСНІ ---
+
 
 @song_router.callback_query(F.data.startswith("song_edit_title_"))
 async def admin_song_edit_title_start(callback: CallbackQuery, state: FSMContext):
@@ -235,7 +235,7 @@ async def admin_song_edit_lyrics_process(message: Message, state: FSMContext, se
     )
 
 
-# --- ВИДАЛЕННЯ ПІСНІ ---
+
 
 @song_router.callback_query(F.data.startswith("song_delete_"))
 async def admin_song_delete(callback: CallbackQuery, session: AsyncSession):

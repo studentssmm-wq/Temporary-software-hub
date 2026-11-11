@@ -111,7 +111,7 @@ def get_portrait_criteria_kb() -> InlineKeyboardMarkup:
         )
     )
     builder.row(
-        # Повертає на Рівень 2 (Глибока аналітика)
+
         InlineKeyboardButton(
             text="🔙 Назад", callback_data="stat_deep"
         )

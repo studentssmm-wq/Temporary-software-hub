@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.core.models import ScheduledMailing
 from app.features.users.user_repository import get_users_for_broadcast
 
-# Ініціалізуємо планувальник глобально або в main.py
+
 scheduler = AsyncIOScheduler(timezone="Europe/Kyiv")
 
 async def execute_mailing(mailing_id: int, bot: Bot, session_maker):
@@ -16,11 +16,14 @@ async def execute_mailing(mailing_id: int, bot: Bot, session_maker):
     Функція, яка викликається планувальником у точний час розсилки.
     Вона відкриває БД лише на час фактичної відправки.
     """
+    from app.core.config import ENABLE_MAILINGS
+    if not ENABLE_MAILINGS:
+        return
     try:
         async with session_maker() as session:
-            # Отримуємо розсилку за ID
+
             mailing = await session.get(ScheduledMailing, mailing_id)
-            
+
             if not mailing or mailing.status != "pending":
                 return
 
@@ -49,7 +52,7 @@ async def execute_mailing(mailing_id: int, bot: Bot, session_maker):
 
     except Exception as e:
         print(f"Помилка під час виконання розсилки {mailing_id}: {e}")
-        
+
 async def restore_pending_mailings_on_startup(bot: Bot, session_maker):
     """
     Викликати один раз при запуску бота (startup event).
@@ -60,9 +63,11 @@ async def restore_pending_mailings_on_startup(bot: Bot, session_maker):
         mailings = result.scalars().all()
 
         for mailing in mailings:
-            # Якщо час відправки вже минув, поки бот був вимкнений - відправляємо зараз
-            run_date = mailing.send_at if mailing.send_at > datetime.now() else datetime.now()
-            
+
+            now = datetime.now(timezone.utc)
+            send_at = mailing.send_at if mailing.send_at.tzinfo else mailing.send_at.replace(tzinfo=timezone.utc)
+            run_date = max(send_at, now)
+
             scheduler.add_job(
                 execute_mailing,
                 trigger='date',
@@ -71,7 +76,7 @@ async def restore_pending_mailings_on_startup(bot: Bot, session_maker):
                 id=f"mailing_{mailing.id}",
                 replace_existing=True
             )
-    
-    # Запускаємо планувальник, якщо він ще не запущений
+
+
     if not scheduler.running:
         scheduler.start()

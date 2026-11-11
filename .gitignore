@@ -8,9 +8,23 @@ __pycache__/
 # Local secrets and credentials
 .env.*
 *.env
-!.env.example
 google_creds.json
 *credentials*.json
 *service-account*.json
 *.pem
 *.key
+
+.pytest_cache/
+local-data/
+*.dump
+
+!.env.production.example
+
+node_modules/
+dist/
+dist-ssr/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+*.bak

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from aiogram import F, Router, types
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,10 +19,11 @@ start_router = Router()
 registration_router = Router()
 
 
-@start_router.message(CommandStart())
-async def start_handler(
+@start_router.message(Command("register"))
+async def begin_registration(
     message: types.Message, session: AsyncSession, state: FSMContext
 ):
+    await state.clear()
     if message.from_user is None:
         return
 
@@ -31,7 +32,7 @@ async def start_handler(
     if user:
         await message.answer(
             f"З поверненням, {user.first_name}! 👋\nОберіть потрібну дію нижче:",
-            reply_markup=get_start_menu_kb(user.user_role),
+            reply_markup=get_main_menu_kb(user.user_role, user.telegram_id),
         )
     else:
         await state.update_data(
@@ -57,22 +58,26 @@ async def start_handler(
         await state.set_state(Registration.phone_number)
 
 
-# КРОК 2: Збереження номера телефону
+
 @registration_router.message(Registration.phone_number, F.contact)
 async def process_phone(message: types.Message, state: FSMContext):
+    if message.contact.user_id and message.contact.user_id != message.from_user.id:
+        return await message.answer("Поділіться власним номером через кнопку нижче.")
     phone = message.contact.phone_number
     await state.update_data(phone_number=phone)
 
-    # Додано префікс types.
+
     await message.answer(
         "Дякую! Тепер введи своє Прізвище та Ім'я:",
         reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(Registration.full_name)
 
-# КРОК 3: ПІБ (Колишній Крок 2)
+
 @registration_router.message(Registration.full_name)
 async def process_full_name(message: types.Message, state: FSMContext):
+    if not message.text or len(message.text.strip()) > 200:
+        return await message.answer("Введіть прізвище та ім’я текстом, до 200 символів.")
     text = message.text.strip()
     if len(text.split()) < 2:
         await message.answer("Будь ласка, введи Прізвище та Ім'я через пробіл:")
@@ -83,7 +88,7 @@ async def process_full_name(message: types.Message, state: FSMContext):
     await message.answer("Чудово! Обери свій інститут (або вкажи, що ти не студент):", reply_markup=get_institutes_kb())
     await state.set_state(Registration.institute)
 
-# КРОК 3: Інститут
+
 
 
 @registration_router.callback_query(Registration.institute, F.data.startswith("inst_"))
@@ -94,25 +99,25 @@ async def process_institute(callback: types.CallbackQuery, state: FSMContext):
         await state.update_data(institute=None, group=None)
         await state.set_state(Registration.non_student_role)
     else:
-        # await callback.message.edit_text(f"Обрано інститут: {institute_name}\n\nНапиши свою групу (наприклад, ОІ-12):")
-        # await state.update_data(institute=institute_name, non_student_role=None)
-        # await state.set_state(Registration.group)
+
+
+
 
         await callback.message.edit_text(f"Обрано інститут: {institute_name}\n\nОбери свою стать:", reply_markup=gender_kb)
         await state.update_data(institute=institute_name, non_student_role=None, group=None)
         await state.set_state(Registration.gender)
     await callback.answer()
 
-# КРОК 4А: Група
 
 
-# @registration_router.message(Registration.group)
-# async def process_group(message: types.Message, state: FSMContext):
-#     await state.update_data(group=message.text.upper())
-#     await message.answer("Обери свою стать:", reply_markup=gender_kb)
-#     await state.set_state(Registration.gender)
 
-# КРОК 4Б: Роль не студента
+
+
+
+
+
+
+
 
 
 @registration_router.callback_query(Registration.non_student_role, F.data.startswith("role_"))
@@ -122,7 +127,7 @@ async def process_non_student_role(callback: types.CallbackQuery, state: FSMCont
     await callback.message.edit_text(f"Твій статус: {role}\n\nОбери свою стать:", reply_markup=gender_kb)
     await state.set_state(Registration.gender)
 
-# КРОК 5: Стать
+
 
 
 @registration_router.callback_query(Registration.gender, F.data.startswith("gender_"))
@@ -134,7 +139,7 @@ async def process_gender(callback: types.CallbackQuery, state: FSMContext):
     )
     await state.set_state(Registration.birth_date)
 
-# КРОК 6: Дата народження
+
 
 
 @registration_router.message(Registration.birth_date)
@@ -152,7 +157,7 @@ async def process_birth_date(message: types.Message, state: FSMContext):
     await message.answer("Останній крок! Продовжуючи реєстрацію, nи надаєш згоду на обробку твоїх персональних даних (інститут, вік, стать, час та місце перебування) для внутрішньої статистики заходу. Дані не передаються стороннім особам", reply_markup=consent_kb)
     await state.set_state(Registration.consent)
 
-# КРОК 7: Згода та ЗАПИС У БАЗУ
+
 
 
 @registration_router.callback_query(Registration.consent, F.data.startswith("consent_"))
@@ -170,7 +175,7 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
     last_name = name_parts[0]
     first_name = name_parts[1] if len(name_parts) > 1 else last_name
 
-    # Створюємо юзера в БД через репозиторій
+
     await create_user(
         session=session,
         telegram_id=data['telegram_id'],
@@ -183,7 +188,7 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
         birth_date=data['birth_date'],
         username=data.get('telegram_tag'),
         data_consent=is_consent,
-        phone_number=data.get('phone_number')  # 👈 ДОДАЙТЕ ЦЕЙ РЯДОК
+        phone_number=data.get('phone_number')
     )
 
     await callback.message.edit_text(
@@ -198,3 +203,17 @@ async def process_consent(callback: types.CallbackQuery, state: FSMContext, sess
 @registration_router.message(Registration.consent)
 async def ignore_text_input(message: types.Message):
     await message.answer("Будь ласка, скористайся кнопками вище 👆")
+
+
+@start_router.message(CommandStart())
+async def start_handler(message: types.Message, session: AsyncSession, state: FSMContext):
+    await state.clear()
+    user = await find_user_by_id(session, message.from_user.id)
+    await message.answer("Вітаємо у студентському боті! Оберіть розділ.",
+        reply_markup=get_main_menu_kb(user.user_role if user else "guest", message.from_user.id))
+
+@start_router.callback_query(F.data == "main_register")
+async def registration_button(callback: types.CallbackQuery, session: AsyncSession, state: FSMContext):
+    await callback.answer()
+    message=callback.message.model_copy(update={"from_user":callback.from_user}).as_(callback.bot)
+    await begin_registration(message,session,state)

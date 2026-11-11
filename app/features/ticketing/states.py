@@ -1,0 +1,62 @@
+from aiogram.fsm.state import State, StatesGroup
+
+class AdminBroadcast(StatesGroup):
+    choose_audience = State()
+    waiting_for_message = State()
+
+class Registration(StatesGroup):
+    waiting_for_last_name = State()
+    waiting_for_first_name = State()
+    waiting_for_institute = State()
+    waiting_for_group = State()
+    waiting_for_other_uni = State()
+
+class EditProfile(StatesGroup):
+    edit_field = State()
+    enter_value = State()
+
+class OrderState(StatesGroup):
+    choosing_seats = State()
+    waiting_for_promocode = State()
+    waiting_for_quantity = State()
+    waiting_for_friend_data = State()
+    waiting_for_proof = State()
+
+class AddEventState(StatesGroup):
+    title = State()
+    photo = State()
+    description = State()
+    date_time = State()
+    venue_type = State()
+    seat_selection_mode = State()
+    picking_seats = State()
+    location = State()
+    total_tickets = State()
+    ask_promo = State()
+    wait_promo_list = State()
+    wait_promo_discount = State()
+    is_free = State()
+    price_type = State()
+    price = State()
+    bank_link = State()
+    card_number = State()
+    requires_confirmation = State()
+    ask_qr = State()
+    success_message = State()
+
+class AdminDelete(StatesGroup):
+    confirm = State()
+
+class AdminEdit(StatesGroup):
+    select_event = State()
+    select_field = State()
+    enter_value = State()
+
+class AdminBlacklist(StatesGroup):
+    add = State()
+    remove = State()
+
+class AdminTickets(StatesGroup):
+    select_event = State()
+    uploading = State()
+    mass_uploading = State()

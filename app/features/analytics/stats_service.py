@@ -13,7 +13,7 @@ from app.features.analytics.stats_repository import (
 
 async def generate_historical_maximum_report(session: AsyncSession) -> str:
     """Формує звіт про історичний максимум (одночасне перебування)."""
-    # За замовчуванням рахуємо по 30 хв (можна змінити)
+
     peaks = await get_historical_maximum(session, interval_minutes=30)
 
     if not peaks:
@@ -73,7 +73,7 @@ async def generate_traffic_peaks_report(session: AsyncSession, interval_minutes:
 
     for date_str, peaks in peaks_by_day.items():
         report += f"📅 <b>{date_str}</b>\n"
-        # Беремо тільки Топ-3 для конкретного дня
+
         for i, (time_window, count) in enumerate(peaks[:3], start=1):
             report += f"  <b>Топ {i}:</b> {time_window} ➡️ <b>{count} осіб</b>\n"
         report += "\n"
@@ -91,7 +91,7 @@ async def generate_outflow_dynamics_report(session: AsyncSession, interval_minut
 
     for date_str, peaks in peaks_by_day.items():
         report += f"📅 <b>{date_str}</b>\n"
-        # Беремо тільки Топ-3 для конкретного дня
+
         for i, (time_window, count) in enumerate(peaks[:3], start=1):
             report += f"  <b>Топ {i}:</b> {time_window} ➡️ <b>{count} осіб</b>\n"
         report += "\n"
@@ -107,7 +107,7 @@ async def generate_time_spent_report(session: AsyncSession, group_by_category: s
     labels = {"gender": "Статтю", "institute": "Інститутами", "age": "Віком"}
     label = labels.get(group_by_category, "Категоріями")
 
-    # Вираховуємо загальну кількість візитів для відсотків
+
     total_visits = sum(info["visits"] for info in data.values())
 
     report = f"⏳ <b>Середній час перебування:</b>\n<i>(Розбивка за {label.lower()})</i>\n\n"
@@ -116,7 +116,7 @@ async def generate_time_spent_report(session: AsyncSession, group_by_category: s
         minutes = info["minutes"]
         visits = info["visits"]
 
-        # Рахуємо відсоток цієї категорії від загальної маси відвідувачів
+
         percent = round((visits / total_visits) * 100,
                         1) if total_visits > 0 else 0
 

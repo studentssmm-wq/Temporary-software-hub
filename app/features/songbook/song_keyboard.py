@@ -19,7 +19,7 @@ def get_songs_list_kb(songs: list[Song], is_admin: bool = False, page: int = 0, 
             )
         )
 
-    # Пагінація
+
     nav_buttons = []
     if page > 0:
         nav_buttons.append(
