@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const API_BASE = "https://temporary-software-hub.onrender.com/api/webapp";
+// API requests remain disabled, as in the supplied game hub.
 
 const FORTUNES = [
   "Твій наступний іспит завершиться несподіваним «автоматом».",

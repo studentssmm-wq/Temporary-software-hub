@@ -9,13 +9,14 @@ from app.features.users.registration_states import Registration
 
 profile_router = Router()
 
-# Допоміжна функція для клавіатури профілю
+
 
 
 def get_profile_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        # [InlineKeyboardButton(text="🦝 Поповнити баланс", callback_data="topup_balance")],
 
+
+        [InlineKeyboardButton(text="🎫 Мої замовлення", callback_data="ticket:orders")],
         [InlineKeyboardButton(text="✏️ Змінити свої дані", callback_data="edit_profile")],
 
         [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
@@ -26,7 +27,7 @@ def get_profile_kb() -> InlineKeyboardMarkup:
 async def show_profile_handler(callback: CallbackQuery, session: AsyncSession):
     user = await find_user_by_id(session, callback.from_user.id)
     if not user:
-        await callback.message.answer("Будь ласка, зареєструйтесь через /start")
+        await callback.message.answer("Будь ласка, зареєструйтесь через /register")
         await callback.answer()
         return
 
@@ -42,7 +43,7 @@ async def show_profile_handler(callback: CallbackQuery, session: AsyncSession):
 
     system_role = "Адміністратор" if user.user_role == "admin" else "Користувач"
 
-    # Додали відображення балансу (user.coins)
+
     profile_text = (
         f"👤 <b>Ваш профіль</b>\n"
         f"──────────────\n"
@@ -51,7 +52,7 @@ async def show_profile_handler(callback: CallbackQuery, session: AsyncSession):
         f"🎂 <b>Дата народження:</b> {user.birth_date.strftime('%d.%m.%Y')}\n"
         f"🚻 <b>Стать:</b> {user.gender}\n"
         f"──────────────\n"
-        # f"🦝 <b>Баланс:</b> <b>{user.coins}</b> Єнот-токенів\n"
+
         f"🛡 <b>Роль:</b> {system_role}\n"
     )
 
@@ -64,36 +65,44 @@ async def show_profile_handler(callback: CallbackQuery, session: AsyncSession):
 
 
 @profile_router.callback_query(F.data == "edit_profile")
-async def edit_profile_handler(callback: CallbackQuery, state: FSMContext):
+async def edit_profile_handler(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     """Запускає FSM реєстрації по новій для оновлення даних"""
 
-    # Зберігаємо базові дані телеграму, щоб вони не загубилися
+    user = await find_user_by_id(session, callback.from_user.id)
+    if not user:
+        return await callback.answer("Спочатку зареєструйтеся", show_alert=True)
+    await state.clear()
+    await state.update_data(phone_number=user.phone_number)
+
     await state.update_data(
         telegram_id=callback.from_user.id,
         telegram_tag=callback.from_user.username
     )
 
-    # Видаляємо старе повідомлення профілю з кнопками, щоб не засмічувати чат
+
     await callback.message.delete()
 
-    # Пишемо повідомлення-привітання
+
     await callback.message.answer(
         "🔄 <b>Оновлення даних</b>\n\nБудь ласка, введіть свій актуальний ПІБ (Прізвище та Ім'я):",
         parse_mode="HTML",
         reply_markup=ReplyKeyboardRemove()
     )
 
-    # Переводимо бота в стан очікування імені (як при старті)
+
     await state.set_state(Registration.full_name)
     await callback.answer()
 
 
 @profile_router.callback_query(F.data == "topup_balance")
 async def topup_balance_handler(callback: CallbackQuery, session: AsyncSession):
-    # Генеруємо платіжне посилання через наш сервіс
+    from app.core.config import ENABLE_PAYMENTS
+    if not ENABLE_PAYMENTS:
+        return await callback.answer("Оплати вимкнено в тестовому середовищі", show_alert=True)
+
     unique_comment, payment_link = await generate_payment_link(session, callback.from_user.id)
 
-    # Створюємо клавіатуру з URL-кнопкою
+
     pay_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text="💳 Оплатити через Monobank", url=payment_link)],

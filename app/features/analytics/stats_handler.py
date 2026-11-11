@@ -66,32 +66,32 @@ async def show_portrait_report_handler(callback: CallbackQuery, session: AsyncSe
 @stats_router.callback_query(F.data == "stat_traffic")
 async def show_traffic_report_handler(callback: CallbackQuery, session: AsyncSession):
 
-    # Викликаємо генерацію з жорстко заданим інтервалом 30
+
     answer = await generate_traffic_peaks_report(session, interval_minutes=30)
 
     with suppress(TelegramBadRequest):
         await callback.message.edit_text(
             text=answer,
             parse_mode="HTML",
-            # Повертаємо головне меню глибокої аналітики
+
             reply_markup=get_deep_analytics_kb()
         )
     await callback.answer()
 
 
-# --- ДИНАМІКА ВІДТОКУ (ВИХІД) ---
+
 
 @stats_router.callback_query(F.data == "stat_outflow")
 async def show_outflow_report_handler(callback: CallbackQuery, session: AsyncSession):
 
-    # Викликаємо генерацію з жорстко заданим інтервалом 30
+
     answer = await generate_outflow_dynamics_report(session, interval_minutes=30)
 
     with suppress(TelegramBadRequest):
         await callback.message.edit_text(
             text=answer,
             parse_mode="HTML",
-            # Повертаємо головне меню глибокої аналітики
+
             reply_markup=get_deep_analytics_kb()
         )
     await callback.answer()
@@ -112,8 +112,8 @@ async def ask_time_spent_criteria_handler(callback: CallbackQuery):
 async def show_time_spent_report_handler(callback: CallbackQuery, session: AsyncSession):
     """Генерує звіт по часу перебування залежно від обраної категорії"""
 
-    # Визначаємо категорію на основі callback_data
-    # (Якщо у вашій клавіатурі кнопка курсу/віку називається stat_time_course, ми мапимо її на "age")
+
+
     category_map = {
         "stat_time_course": "age",
         "stat_time_age": "age",

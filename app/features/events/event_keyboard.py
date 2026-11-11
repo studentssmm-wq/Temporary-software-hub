@@ -18,9 +18,9 @@ def get_schedule_pagination_kb(day: int, current_index: int, total: int) -> Inli
     """Клавіатура для гортання картинок"""
     builder = InlineKeyboardBuilder()
 
-    # Якщо картинка лише одна, кнопки "Вперед/Назад" не додаємо
+
     if total > 1:
-        # Робимо безкінечну карусель (після останньої -> перша)
+
         prev_idx = current_index - 1 if current_index > 0 else total - 1
         next_idx = current_index + 1 if current_index < total - 1 else 0
 

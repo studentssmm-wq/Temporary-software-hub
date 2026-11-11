@@ -35,10 +35,10 @@ async def get_historical_maximum(session: AsyncSession, interval_minutes: int = 
         occupancy_timeline.append((scanned_at, current_users))
 
     intervals_max = {}
-    kyiv_tz = ZoneInfo("Europe/Kyiv")  # 👈 Додано часовий пояс
+    kyiv_tz = ZoneInfo("Europe/Kyiv")
 
     for ts, occ in occupancy_timeline:
-        # 👈 Конвертація часу
+
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=ZoneInfo("UTC"))
         local_ts = ts.astimezone(kyiv_tz)
@@ -82,30 +82,30 @@ async def get_audience_portrait(session: AsyncSession, is_current: bool):
     today = date.today()
 
     for gender, institute, birth_date, non_student_type in users_data:
-        # Рахуємо стать
+
         portrait["gender"][gender] = portrait["gender"].get(gender, 0) + 1
 
-        # Рахуємо інститути (тільки якщо вказано)
+
         if institute:
             portrait["institute"][institute] = portrait["institute"].get(
                 institute, 0) + 1
 
-        # Рахуємо статус (якщо є non_student_type — значить не студент)
+
         if non_student_type:
             portrait["status"]["Інші"] += 1
         else:
             portrait["status"]["Студенти"] += 1
 
-        # Вираховуємо вік (сьогоднішній рік мінус рік народження, враховуючи місяць і день)
+
         if birth_date:
             if isinstance(birth_date, str):
                 birth_date = date.fromisoformat(birth_date[:10])
 
-            age = today.year - birth_date.year - \
+            age = today.year - birth_date.year -\
                 ((today.month, today.day) < (birth_date.month, birth_date.day))
             total_age += age
 
-    # Вираховуємо середній вік і округлюємо до 1 знака після коми
+
     portrait["average_age"] = round(total_age / total, 1)
 
     return portrait
@@ -121,10 +121,10 @@ async def get_traffic_peaks(session: AsyncSession, interval_minutes: int = 30) -
         return {}
 
     traffic_by_day = {}
-    kyiv_tz = ZoneInfo("Europe/Kyiv")  # 👈 Додано часовий пояс
+    kyiv_tz = ZoneInfo("Europe/Kyiv")
 
     for ts in timestamps:
-        # 👈 Конвертація часу
+
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=ZoneInfo("UTC"))
         local_ts = ts.astimezone(kyiv_tz)
@@ -161,10 +161,10 @@ async def get_outflow_dynamics(session: AsyncSession, interval_minutes: int = 30
         return {}
 
     traffic_by_day = {}
-    kyiv_tz = ZoneInfo("Europe/Kyiv")  # 👈 Додано часовий пояс
+    kyiv_tz = ZoneInfo("Europe/Kyiv")
 
     for ts in timestamps:
-        # 👈 Конвертація часу
+
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=ZoneInfo("UTC"))
         local_ts = ts.astimezone(kyiv_tz)
@@ -224,7 +224,7 @@ async def get_average_time_spent(session: AsyncSession, group_by_category: str) 
                 if isinstance(birth_date, str):
                     birth_date = date.fromisoformat(birth_date[:10])
 
-                age = today.year - birth_date.year - \
+                age = today.year - birth_date.year -\
                     ((today.month, today.day) < (birth_date.month, birth_date.day))
                 cat_key = f"{age} років"
             else:
@@ -248,7 +248,7 @@ async def get_average_time_spent(session: AsyncSession, group_by_category: str) 
     for cat, stats in category_stats.items():
         if stats["visits"] > 0:
             avg_seconds = stats["seconds"] / stats["visits"]
-            # Тепер ми повертаємо словник з хвилинами ТА кількістю візитів для вирахування відсотків
+
             averages[cat] = {
                 "minutes": round(avg_seconds / 60),
                 "visits": stats["visits"]

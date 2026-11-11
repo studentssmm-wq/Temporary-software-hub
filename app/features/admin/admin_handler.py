@@ -23,7 +23,7 @@ from sqlalchemy import select, delete
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from apscheduler.jobstores.base import JobLookupError
 from app.features.mailing.mailing_service import scheduler, execute_mailing
-from app.core.database import session_maker # Зміни шлях на свій справжній
+from app.core.database import session_maker
 admin_router = Router()
 
 admin_router.message.filter(AdminFilter())
@@ -35,7 +35,7 @@ async def cancel_fsm_handler(message: Message, state: FSMContext):
     """Скасовує будь-яку поточну дію FSM"""
     current_state = await state.get_state()
     if current_state is None:
-        return  # Якщо стану немає, нічого не робимо
+        return
 
     await state.clear()
     await message.answer("Дію скасовано. Повернення до нормального режиму.", reply_markup=ReplyKeyboardRemove())
@@ -43,7 +43,7 @@ async def cancel_fsm_handler(message: Message, state: FSMContext):
 
 @admin_router.message(Command("admin"))
 async def admin_panel_handler(message: Message, state: FSMContext):
-    await state.clear()  # 👈 Очищаємо стан!
+    await state.clear()
     await message.answer(
         "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
         reply_markup=get_admin_main_kb()
@@ -51,7 +51,7 @@ async def admin_panel_handler(message: Message, state: FSMContext):
 
 
 @admin_router.callback_query(F.data == "admin_cancel")
-# Додано state
+
 async def cancel_action_handler(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
@@ -63,7 +63,7 @@ async def cancel_action_handler(callback: CallbackQuery, state: FSMContext):
 
 
 @admin_router.callback_query(F.data == "back_to_main")
-# Додано state
+
 async def back_to_main_handler(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
@@ -136,6 +136,9 @@ async def process_volunteer_id(message: Message, state: FSMContext, session: Asy
 
 @admin_router.callback_query(F.data == "admin_broadcast")
 async def broadcast_handler(callback: CallbackQuery, state: FSMContext):
+    from app.core.config import ENABLE_MAILINGS
+    if not ENABLE_MAILINGS:
+        return await callback.answer("Розсилки вимкнено в тестовому середовищі")
     await state.set_state(BroadcastState.waiting_for_type)
     await callback.message.edit_text(
         "📢 Коли бажаєте зробити розсилку?",
@@ -220,6 +223,9 @@ async def ask_broadcast_message(callback: CallbackQuery, state: FSMContext):
 
 @admin_router.message(BroadcastState.waiting_for_message)
 async def process_broadcast_message(message: Message, state: FSMContext, session: AsyncSession):
+    from app.core.config import ENABLE_MAILINGS
+    if not ENABLE_MAILINGS:
+        return await message.answer("Розсилки вимкнено в тестовому середовищі")
     data = await state.get_data()
     target = data.get("target")
     bcast_type = data.get("bcast_type")
@@ -284,16 +290,16 @@ async def process_broadcast_message(message: Message, state: FSMContext, session
         )
         session.add(new_mailing)
         await session.commit()
-        await session.refresh(new_mailing) # Отримуємо ID новоствореного запису
+        await session.refresh(new_mailing)
 
-        # Додаємо задачу в in-memory планувальник
-        # (Переконайся, що імпортував scheduler та функцію execute_mailing)
+
+
         scheduler.add_job(
             execute_mailing,
             trigger='date',
             run_date=new_mailing.send_at,
-            # Використовуємо message.bot для доступу до екземпляра бота
-            args=[new_mailing.id, message.bot, session_maker], 
+
+            args=[new_mailing.id, message.bot, session_maker],
             id=f"mailing_{new_mailing.id}"
         )
 
@@ -355,7 +361,7 @@ async def show_scheduled_mailings(callback: CallbackQuery, session: AsyncSession
 
     for m in mailings:
         text_preview = m.message_text if m.message_text else "[Медіа]"
-        short_text = text_preview[:15] + \
+        short_text = text_preview[:15] +\
             "..." if len(text_preview) > 15 else text_preview
         time_str = m.send_at.strftime("%d.%m %H:%M")
 
@@ -377,17 +383,20 @@ from apscheduler.jobstores.base import JobLookupError
 
 @admin_router.callback_query(F.data.startswith("del_mail_"))
 async def delete_scheduled_mailing(callback: CallbackQuery, session: AsyncSession):
+    from app.core.config import ENABLE_MAILINGS
+    if not ENABLE_MAILINGS:
+        return await callback.answer("Розсилки вимкнено в тестовому середовищі")
     mailing_id = int(callback.data.split("_")[2])
     await session.execute(
         delete(ScheduledMailing).where(ScheduledMailing.id == mailing_id)
     )
     await session.commit()
-    
-    # Видаляємо задачу з APScheduler
+
+
     try:
         scheduler.remove_job(f"mailing_{mailing_id}")
     except JobLookupError:
-        pass # Задача могла вже зникнути з пам'яті після рестарту бота
+        pass
 
     await callback.answer("✅ Розсилку успішно скасовано!", show_alert=True)
     await show_scheduled_mailings(callback, session)
@@ -395,7 +404,7 @@ async def delete_scheduled_mailing(callback: CallbackQuery, session: AsyncSessio
 
 @admin_router.callback_query(F.data == "main_admin")
 async def main_admin_callback(callback: CallbackQuery):
-    # Відправляємо меню адміністратора
+
     await callback.message.edit_text(
         "👋 Вітаю в панелі адміністратора!\n\nОберіть потрібну дію з меню нижче:",
         reply_markup=get_admin_main_kb()
@@ -421,17 +430,17 @@ async def ask_for_map_photo(callback: CallbackQuery, state: FSMContext):
 
 @admin_router.message(MediaUpdateState.waiting_for_map, F.photo)
 async def process_map_photo(message: Message, state: FSMContext, session: AsyncSession):
-    # Telegram генерує кілька розмірів фото, [-1] — це найбільша якість
+
     file_id = message.photo[-1].file_id
 
-    # Зберігаємо file_id в базу даних під іменем "map"
+
     await update_media(session, "map", file_id)
 
     await message.answer("✅ Мапу успішно оновлено!")
     await state.clear()
 
 
-# --- МЕНЮ КЕРУВАННЯ РОЗКЛАДОМ ---
+
 @admin_router.callback_query(F.data == "admin_schedule_menu")
 async def schedule_menu_handler(callback: CallbackQuery):
     await callback.message.edit_text("📅 Керування розкладом\nОберіть дію:",
@@ -440,14 +449,14 @@ async def schedule_menu_handler(callback: CallbackQuery):
 
 @admin_router.callback_query(F.data == "admin_meeting_menu")
 async def admin_meeting_upload_start(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
-    # 1. Видаляємо старі фото зустрічі (використовуємо 0 як фіктивний день)
+
     await delete_schedule_for_day(session, 0)
-    
-    # 2. Зберігаємо 0 у стан FSM, щоб існуючий хендлер `schedule_process_photo` зберіг фото куди треба
+
+
     await state.update_data(event_day=0)
     await state.set_state(ScheduleUpdateState.waiting_for_photos)
-    
-    # 3. Просимо адміна надіслати фото і даємо кнопку завершення
+
+
     await callback.message.edit_text(
         "🖼 Старі фото зустрічей з адміністрацією очищено (якщо вони були).\n\n"
         "Відправляйте <b>нові фотографії</b> (можна альбомом).\n"
@@ -457,7 +466,7 @@ async def admin_meeting_upload_start(callback: CallbackQuery, state: FSMContext,
     )
     await callback.answer()
 
-# --- ДОДАВАННЯ РОЗКЛАДУ ---
+
 @admin_router.callback_query(F.data == "schedule_add")
 async def schedule_add_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ScheduleUpdateState.waiting_for_date)
@@ -509,7 +518,7 @@ async def schedule_finish_upload(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-# --- ВИДАЛЕННЯ РОЗКЛАДУ ---
+
 @admin_router.callback_query(F.data == "schedule_delete")
 async def schedule_delete_start(callback: CallbackQuery, session: AsyncSession):
     days = await get_schedule_days(session)
@@ -527,26 +536,26 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 @admin_router.callback_query(F.data.startswith("del_sched_"))
 async def schedule_delete_process(callback: CallbackQuery, session: AsyncSession):
-    # Отримуємо число з callback_data (наприклад, з 'del_sched_4' дістаємо 4)
+
     event_day = int(callback.data.replace("del_sched_", ""))
 
-    # ЗАХИСТ: перевіряємо, чи це не 0 число
+
     if event_day == 0:
         await callback.answer(
-            "❌ Фото зустрічей з адміністрацією не можна видаляти через це меню!", 
+            "❌ Фото зустрічей з адміністрацією не можна видаляти через це меню!",
             show_alert=True
         )
-        return  # Зупиняємо виконання функції, щоб не видалити дані з бази
+        return
 
-    # Видаляємо розклад для цього дня
+
     await delete_schedule_for_day(session, event_day)
 
-    # Створюємо клавіатуру з кнопкою для повернення в меню розкладу
+
     back_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Повернутися", callback_data="admin_schedule_menu")]
     ])
 
-    # Оновлюємо повідомлення, додаючи клавіатуру
+
     await callback.message.edit_text(
         text=f"✅ Розклад на {event_day} число повністю видалено!",
         reply_markup=back_kb
@@ -555,18 +564,18 @@ async def schedule_delete_process(callback: CallbackQuery, session: AsyncSession
 
 @admin_router.callback_query(F.data == "admin_meeting_menu")
 async def admin_meeting_upload_start(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
-    # Видаляємо старі фото зустрічі (використовуємо 0 як унікальний ідентифікатор)
-    await delete_schedule_for_day(session, 0) #[cite: 2]
-    
-    # Встановлюємо 0 як день у FSM дату, щоб існуючий хендлер фото зрозумів, куди зберігати
-    await state.update_data(event_day=0) #[cite: 2]
-    await state.set_state(ScheduleUpdateState.waiting_for_photos) #[cite: 2]
-    
+
+    await delete_schedule_for_day(session, 0)
+
+
+    await state.update_data(event_day=0)
+    await state.set_state(ScheduleUpdateState.waiting_for_photos)
+
     await callback.message.edit_text(
         "🖼 Старі фото видалено.\n\n"
         "Відправляйте нові фотографії для 'Зустрічі з адміністрацією' (можна альбомом). "
         "Коли надішлете всі — натисніть кнопку нижче.",
-        reply_markup=get_finish_upload_kb() # Перевикористовуємо існуючу кнопку завершення[cite: 3]
+        reply_markup=get_finish_upload_kb()
     )
     await callback.answer()
 
@@ -587,13 +596,13 @@ async def ask_for_shelter_video(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(MediaUpdateState.waiting_for_shelter_video, F.video)
 async def process_shelter_video(message: Message, state: FSMContext, session: AsyncSession):
     file_id = message.video.file_id
-    
-    # Зберігаємо file_id в базу даних під іменем "shelter_video"
+
+
     await update_media(session, "shelter_video", file_id)
 
     await message.answer("✅ Відео укриття успішно оновлено!")
     await state.clear()
-    
+
 @admin_router.callback_query(F.data == "admin_update_stretching")
 async def ask_for_stretching_video(callback: CallbackQuery, state: FSMContext):
     await state.set_state(MediaUpdateState.waiting_for_stretching_video)
@@ -611,8 +620,8 @@ async def ask_for_stretching_video(callback: CallbackQuery, state: FSMContext):
 @admin_router.message(MediaUpdateState.waiting_for_stretching_video, F.video)
 async def process_stretching_video(message: Message, state: FSMContext, session: AsyncSession):
     file_id = message.video.file_id
-    
-    # Зберігаємо file_id в базу даних під іменем "stretching_video"
+
+
     await update_media(session, "stretching_video", file_id)
 
     await message.answer("✅ Відео локації стретчингу успішно оновлено!")

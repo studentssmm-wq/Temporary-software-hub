@@ -1,5 +1,7 @@
-from app.core.config import DATABASE_URL
+from app.core.config import DATABASE_URL, DATABASE_SCHEMA
 from app.core.models import Base
+from app.features.ticketing import schema  # register all integration tables
+from app.core.database import database_options
 import asyncio
 import os
 import sys
@@ -20,7 +22,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 config = context.config
 
 # Перевизначаємо URL бази даних, щоб він брався з вашого .env/config.py
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+migration_url, migration_connect_args = database_options(DATABASE_URL)
+config.set_main_option("sqlalchemy.url", migration_url.render_as_string(hide_password=False).replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -64,6 +67,8 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=migration_connect_args,
+        execution_options={"schema_translate_map":{None:DATABASE_SCHEMA}},
     )
 
     async with connectable.connect() as connection:

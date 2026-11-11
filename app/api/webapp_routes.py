@@ -3,7 +3,7 @@ import hashlib
 import json
 import urllib.parse
 from fastapi import APIRouter, Request, HTTPException, Header
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.config import BOT_TOKEN
 from app.features.users.user_repository import find_user_by_id
@@ -21,32 +21,31 @@ def verify_telegram_data(init_data: str) -> dict:
 
         hash_val = parsed_data.pop("hash")
 
-        # Сортуємо ключі за алфавітом і формуємо рядок
+
         data_check_string = "\n".join(
             f"{k}={v}" for k, v in sorted(parsed_data.items()))
 
-        # Створюємо секретний ключ з токена бота
+
         secret_key = hmac.new(
             b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
 
-        # Генеруємо наш хеш і порівнюємо з тим, що прислав Telegram
+
         calculated_hash = hmac.new(
             secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
-        if calculated_hash != hash_val:
+        if not hmac.compare_digest(calculated_hash, hash_val):
             raise ValueError("Недійсний підпис")
 
         return json.loads(parsed_data["user"])
-    except Exception as e:
-        print(f"Помилка авторизації Web App: {e}")
+    except (ValueError, KeyError, TypeError):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-# Схема для POST запиту на списання токенів
+
 
 
 class SpendRequest(BaseModel):
-    amount: int
-    feature: str  # наприклад, 'tarot', 'fortune_cookie'
+    amount: int = Field(gt=0, le=1000000)
+    feature: str = Field(min_length=1, max_length=50)
 
 
 @webapp_router.get("/user")
@@ -82,7 +81,7 @@ async def spend_coins(spend_data: SpendRequest, request: Request, authorization:
 
     session_factory = request.app.state.session_factory
     async with session_factory() as session:
-        # Важливо: передаємо від'ємне значення для списання
+
         success = await process_coin_transaction(
             session=session,
             telegram_id=tg_user["id"],

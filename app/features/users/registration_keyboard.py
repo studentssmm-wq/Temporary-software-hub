@@ -2,11 +2,14 @@ from aiogram import types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def get_institutes_kb() -> types.InlineKeyboardMarkup:
-    institutes = sorted([
+NULP_INSTITUTES = frozenset([
         "ІНЕМ", "ІППО", "ІКТА", "ІКНІ", "ІКТЕ", "ІМФН", "ІГСН",
         "ІГДГ", "ІПМТ", "ІМІТ", "ІАРД", "ІЕСК", "ІХХТ", "ІБІБ", "ІВБІ", "ІППТ"
     ])
+
+
+def get_institutes_kb() -> types.InlineKeyboardMarkup:
+    institutes = sorted(NULP_INSTITUTES)
     builder = InlineKeyboardBuilder()
     for inst in institutes:
         builder.button(text=inst, callback_data=f"inst_{inst}")

@@ -74,7 +74,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
-    # Зв'язок для отримання історії сканувань користувача
+
     scan_logs: Mapped[list["ScanLog"]] = relationship(
         "ScanLog",
         foreign_keys="[ScanLog.telegram_id]",
@@ -92,7 +92,7 @@ class User(Base):
     )
 
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    
+
     coin_transactions: Mapped[list["CoinTransaction"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
@@ -202,9 +202,9 @@ class QRPass(Base):
 class BotMedia(Base):
     __tablename__ = "bot_media"
 
-    # Назва медіа, наприклад "map" або "schedule"
+
     name: Mapped[str] = mapped_column(String(50), primary_key=True)
-    # Унікальний код файлу в Telegram
+
     file_id: Mapped[str] = mapped_column(String(255), nullable=False)
 
 

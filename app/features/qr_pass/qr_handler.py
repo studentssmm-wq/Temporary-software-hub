@@ -71,7 +71,7 @@ async def scan_qr(
     try:
         pass_id = UUID(command.args)
     except ValueError:
-        await _answer_scan_message(message, "❌ Недійсний формат QR-коду.")
+        await message.answer( "❌ Недійсний формат QR-коду.")
         return
 
     try:

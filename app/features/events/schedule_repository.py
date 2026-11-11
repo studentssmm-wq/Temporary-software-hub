@@ -29,6 +29,6 @@ async def get_schedule_photos_by_day(session: AsyncSession, event_day: int) -> l
     result = await session.execute(
         select(ScheduleMedia.file_id)
         .where(ScheduleMedia.event_day == event_day)
-        .order_by(ScheduleMedia.id)  # Щоб зберігався порядок завантаження
+        .order_by(ScheduleMedia.id)
     )
     return list(result.scalars().all())

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 
 class DatabaseMiddleware(BaseMiddleware):
-    # Отримуємо session_factory при створенні мідлвари
+
     def __init__(self, session_factory: async_sessionmaker):
         self.session_factory = session_factory
 
@@ -16,7 +16,7 @@ class DatabaseMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        # Використовуємо self.session_factory()
+
         async with self.session_factory() as session:
             data["session"] = session
             return await handler(event, data)
