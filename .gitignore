@@ -4,3 +4,13 @@ __pycache__/
 *.pyc
 .idea/
 .ruff_cache/
+
+# Local secrets and credentials
+.env.*
+*.env
+!.env.example
+google_creds.json
+*credentials*.json
+*service-account*.json
+*.pem
+*.key
