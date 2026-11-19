@@ -7,6 +7,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, WebAppInfo, BufferedInputFile
@@ -121,7 +122,13 @@ async def list_events(message: Message):
         type_str = '<i>Безкоштовно</i>' if ev['is_free'] else f"<b>{ev['price']}</b>"
         event_text = f"🎉 <b>{ev['title']}</b>\n\n📅 <b>Коли:</b> {ev['date_time']}\n📍 <b>Локація:</b> {ev['location']}\n💵 <b>Вартість:</b> {type_str}\n\n<i>{ev['description']}</i>"
         if ev.get('photo_id'):
-            await message.answer_photo(ev['photo_id'], caption=event_text, reply_markup=kb, parse_mode='HTML')
+            try:
+                await message.answer_photo(ev['photo_id'], caption=event_text, reply_markup=kb, parse_mode='HTML')
+            except TelegramBadRequest as error:
+                if 'wrong file identifier/http url specified' not in str(error).casefold():
+                    raise
+                logger.warning("Event %s has an invalid Telegram photo_id; displaying without photo", ev['id'])
+                await message.answer(event_text, reply_markup=kb, parse_mode='HTML')
         else:
             await message.answer(event_text, reply_markup=kb, parse_mode='HTML')
 
